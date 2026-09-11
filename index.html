@@ -12,7 +12,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-24 font-sans antialiased select-none">
 
-  <!-- Header -->
+  <!-- Mobile Header -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
     <div>
       <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget & Audit</h1>
@@ -106,32 +106,77 @@
       </div>
       <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80"></div>
     </section>
+
+    <!-- Emergency & Savings Overview -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2 text-xs">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Emergency & Savings Overview</h2>
+      <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-slate-500 text-[10px] block font-sans">Current Emergency Fund</span>
+          <span class="text-emerald-400 font-bold text-sm">$28,000.00</span>
+          <span class="text-[10px] text-slate-400 block font-sans">4.43 mo runway (Target $40k)</span>
+        </div>
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+          <span class="text-slate-500 text-[10px] block font-sans">Monthly Savings Rate</span>
+          <span class="text-indigo-400 font-bold text-sm">$5,000.00/mo</span>
+          <span class="text-[10px] text-slate-400 block font-sans">$3k Long / $2k Short</span>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <!-- Step 1: Statement CSV Upload Modal -->
+  <!-- Step 1: Statement CSV Upload Modal with Month Selector -->
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
         <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select a CSV statement exported from AMEX, Chase, or USAA. Travel transactions will be staged for assignment.</p>
+      <p class="text-xs text-slate-400">Select a CSV statement. Choose the target month to filter out other months and keep your Work ER float accurate.</p>
 
       <div class="space-y-3">
+        <!-- Target Month & Year Selector -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+          <div>
+            <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Import Month</label>
+            <select id="importMonthSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Import Year</label>
+            <select id="importYearSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+        </div>
+
         <div>
           <label class="block text-[11px] text-slate-300 font-medium mb-1.5">Choose Statement File (.csv)</label>
           <input type="file" id="statementFileInput" accept=".csv,text/csv,text/plain" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-slate-800 file:text-indigo-400 hover:file:bg-slate-700 cursor-pointer bg-slate-950 p-1 rounded-lg border border-slate-800" />
         </div>
 
         <div class="flex items-center space-x-2 pt-1">
-          <input type="checkbox" id="overwriteSpendChk" class="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0">
-          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Overwrite current category spend</label>
+          <input type="checkbox" id="overwriteSpendChk" checked class="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0">
+          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Overwrite current category spend for this month</label>
         </div>
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
-        <button onclick="startCSVIngestion()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Scan & Assign</button>
+        <button onclick="startCSVIngestion()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Scan & Filter</button>
       </div>
     </div>
   </div>
@@ -140,8 +185,8 @@
   <div id="travelAssignModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div>
-        <h3 class="font-bold text-sm text-slate-200">Assign Travel & Flights</h3>
-        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add directly to your Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal spending.</p>
+        <h3 class="font-bold text-sm text-slate-200">Assign Monthly Travel & Flights</h3>
+        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to this month's Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal entertainment.</p>
       </div>
 
       <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
@@ -154,7 +199,6 @@
   </div>
 
   <script>
-    // 1. Plan Baseline Dataset[cite: 2]
     const planCategories = [
       { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joe's" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee, Takeout" },
@@ -167,7 +211,6 @@
       { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
       { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
 
-      // Checking Outflows[cite: 2]
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
       { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
@@ -181,7 +224,6 @@
       { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
-    // 2. Statement Reality Dataset[cite: 2]
     const realityCategories = [
       { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150)" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland dining" },
@@ -197,7 +239,6 @@
       { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Chase $95 Fee, Costco, Prime" },
       { id: "ent_misc", name: "Entertainment & Travel", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
 
-      // Checking Outflows[cite: 2]
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
       { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
@@ -230,7 +271,6 @@
       { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00 }
     ];
 
-    // Global staging area for CSV processing
     let stagedSpendMap = {};
     let stagedTravelList = [];
 
@@ -241,6 +281,10 @@
       const elapsedPct = Math.round((day / totalDays) * 100);
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       document.getElementById('cycleLabel').innerText = `${monthNames[now.getMonth()]} Elapsed: ${elapsedPct}% (Day ${day}/${totalDays})`;
+
+      // Set dropdowns to active month and year
+      document.getElementById('importMonthSelect').value = (now.getMonth() + 1).toString();
+      document.getElementById('importYearSelect').value = now.getFullYear().toString();
 
       document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '6822.61';
       document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '3539.53';
@@ -412,10 +456,40 @@
       renderCashFlow();
     }
 
-    // --- CSV PARSING & INTERACTIVE TRAVEL ASSIGNMENT ---
+    // Helper: Parse Date across AMEX (M/D/YY), Chase (MM/DD/YYYY), or USAA (YYYY-MM-DD)
+    function parseTransactionDate(raw) {
+      if (!raw) return null;
+      raw = raw.trim();
+
+      // USAA ISO format: YYYY-MM-DD
+      if (raw.includes('-')) {
+        const parts = raw.split('-');
+        if (parts.length >= 3) {
+          return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10), day: parseInt(parts[2], 10) };
+        }
+      }
+
+      // AMEX / Chase slash format: M/D/YY or MM/DD/YYYY
+      if (raw.includes('/')) {
+        const parts = raw.split('/');
+        if (parts.length >= 3) {
+          let m = parseInt(parts[0], 10);
+          let d = parseInt(parts[1], 10);
+          let y = parseInt(parts[2], 10);
+          if (y < 100) y += 2000; // Handle 2-digit year (e.g. 26 -> 2026)
+          return { year: y, month: m, day: d };
+        }
+      }
+
+      return null;
+    }
+
+    // --- CSV PARSER WITH MONTH FILTERING ---
     function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
+      const targetMonth = parseInt(document.getElementById('importMonthSelect').value, 10);
+      const targetYear = parseInt(document.getElementById('importYearSelect').value, 10);
 
       if (!fileInput.files || fileInput.files.length === 0) {
         alert("Please select a CSV statement file first.");
@@ -447,9 +521,11 @@
         const isAmex = header.includes('card member') || header.includes('account #');
         const isChase = header.includes('trans date') || header.includes('post date');
 
-        // Travel keywords to flag for interactive review
         const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR'];
         const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
+
+        let skippedDifferentMonth = 0;
+        let processedForMonth = 0;
 
         for (let i = 1; i < lines.length; i++) {
           const row = lines[i];
@@ -457,7 +533,7 @@
           const cols = row.split(delim).map(c => c.replace(/^["']|["']$/g, '').trim());
           if (cols.length < 3) continue;
 
-          let date = cols[0];
+          let rawDate = cols[0];
           let desc = "";
           let amt = 0;
           let member = "";
@@ -480,21 +556,31 @@
           }
 
           if (isNaN(amt) || amt <= 0) continue;
+
+          // Check if date falls in target month and year
+          const parsedD = parseTransactionDate(rawDate);
+          if (parsedD) {
+            if (parsedD.month !== targetMonth || parsedD.year !== targetYear) {
+              skippedDifferentMonth++;
+              continue;
+            }
+          }
+
+          processedForMonth++;
           const uDesc = desc.toUpperCase();
 
           // Skip credit card payoff debits
           if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU')) continue;
 
-          // Check if this is a travel charge
+          // Check if travel charge
           const isTravel = travelKeywords.some(k => uDesc.includes(k));
 
           if (isTravel) {
-            // Intelligent pre-selection suggestion based on location & cardmember
             const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
             
             stagedTravelList.push({
               id: `trv_${i}`,
-              date: date,
+              date: rawDate,
               desc: desc,
               amount: amt,
               member: member,
@@ -503,7 +589,7 @@
             continue;
           }
 
-          // Standard category rules
+          // Category classification
           let cat = 'ent_misc';
           if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK')) {
             cat = 'gas';
@@ -534,13 +620,17 @@
 
         closeModal('uploadModal');
 
-        // If travel transactions found, launch assignment modal; otherwise finalize directly
+        if (processedForMonth === 0) {
+          alert(`No transactions found for Month ${targetMonth}/${targetYear}. (${skippedDifferentMonth} transactions skipped from other months).`);
+          return;
+        }
+
         if (stagedTravelList.length > 0) {
           renderTravelQueue();
           openModal('travelAssignModal');
         } else {
           commitStagedData();
-          alert("Statement processed successfully (no travel items flagged).");
+          alert(`Success! Ingested ${processedForMonth} transactions for Month ${targetMonth}/${targetYear}. (${skippedDifferentMonth} transactions skipped from other months).`);
         }
       };
 
@@ -594,13 +684,13 @@
         }
       });
 
-      // Add personal travel to Entertainment category
       if (stagedSpendMap['ent_misc'] !== undefined) {
         stagedSpendMap['ent_misc'] += addedPersonalTravel;
       }
 
-      // Automatically increase the Work ER field on the top calculator
-      const currentER = parseFloat(document.getElementById('erInput').value) || 0;
+      // If overwriting, set ER to only this month's work travel; if appending, add to it
+      const overwrite = document.getElementById('overwriteSpendChk').checked;
+      const currentER = overwrite ? 0 : (parseFloat(document.getElementById('erInput').value) || 0);
       const newER = currentER + addedWorkER;
       document.getElementById('erInput').value = newER.toFixed(2);
       localStorage.setItem('budget_er', newER);
@@ -608,7 +698,7 @@
       commitStagedData();
       closeModal('travelAssignModal');
 
-      alert(`Statement Ingested!\n• Added to Work ER Float: +$${addedWorkER.toFixed(2)}\n• Added to Personal Travel: +$${addedPersonalTravel.toFixed(2)}`);
+      alert(`Month Import Complete!\n• Work ER Float for this month: $${newER.toFixed(2)}\n• Added to Personal Travel: +$${addedPersonalTravel.toFixed(2)}`);
     }
 
     function commitStagedData() {
