@@ -10,16 +10,21 @@
   <title>Budget & Spend Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-16 font-sans antialiased select-none">
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-20 font-sans antialiased select-none">
   <!-- Header -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
     <div>
-      <h1 class="text-base font-bold text-emerald-400 leading-tight">Personal Cash Flow</h1>
-      <p class="text-[11px] text-slate-400">AMEX · Chase · USAA</p>
+      <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget Tracker</h1>
+      <p class="text-[11px] text-slate-400">AMEX · Chase · USAA Checking</p>
     </div>
-    <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow">
-      + Ingest CSV
-    </button>
+    <div class="flex gap-2">
+      <button onclick="resetAllActuals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
+        Reset Spend
+      </button>
+      <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow">
+        + Ingest CSV
+      </button>
+    </div>
   </header>
 
   <main class="p-4 space-y-4 max-w-lg mx-auto">
@@ -33,51 +38,52 @@
       <div class="grid grid-cols-3 gap-2 mb-3">
         <div>
           <label class="block text-[11px] text-slate-400 mb-1">AMEX Bal ($)</label>
-          <input type="number" step="0.01" id="amexInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none" />
+          <input type="number" step="0.01" id="amexInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono" />
         </div>
         <div>
           <label class="block text-[11px] text-slate-400 mb-1">Chase Bal ($)</label>
-          <input type="number" step="0.01" id="chaseInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none" />
+          <input type="number" step="0.01" id="chaseInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono" />
         </div>
         <div>
           <label class="block text-[11px] text-amber-400 mb-1">Work ER ($)</label>
-          <input type="number" step="0.01" id="erInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right text-amber-300 focus:border-amber-500 focus:outline-none" />
+          <input type="number" step="0.01" id="erInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right text-amber-300 focus:border-amber-500 focus:outline-none font-mono" />
         </div>
       </div>
 
       <div class="bg-slate-950 rounded-xl p-3 border border-slate-800/80 space-y-2">
         <div class="flex justify-between text-xs">
           <span class="text-slate-400">Net Organic Burn:</span>
-          <span id="adjustedSpend" class="font-bold text-slate-200">$0.00</span>
+          <span id="adjustedSpend" class="font-bold text-slate-200 font-mono">$0.00</span>
         </div>
         <div class="flex justify-between text-xs">
           <span class="text-slate-400">Card Target Limit:</span>
-          <span class="text-slate-300 font-mono">$7,800.00</span>
+          <span class="text-slate-300 font-mono">$6,400.00 / mo</span>
         </div>
         <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
           <div id="calcProgress" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
         </div>
         <div class="flex justify-between text-xs">
           <span id="spentPercent" class="font-semibold text-emerald-400">0.0% of Limit</span>
-          <span id="overUnder" class="text-slate-400">$7,800.00 remaining</span>
+          <span id="overUnder" class="text-slate-400 font-mono">$6,400.00 remaining</span>
         </div>
       </div>
     </section>
 
-    <!-- Category Filters -->
-    <section class="flex items-center justify-between">
-      <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
-        <button onclick="filterCat('all')" id="btn-all" class="px-3 py-1 text-xs rounded-md font-medium bg-indigo-600 text-white transition">All</button>
-        <button onclick="filterCat('Essential')" id="btn-essential" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Essential</button>
-        <button onclick="filterCat('Discretionary')" id="btn-discretionary" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Discretionary</button>
+    <!-- Category Progress Bars -->
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
+          <button onclick="filterCat('all')" id="btn-all" class="px-3 py-1 text-xs rounded-md font-medium bg-indigo-600 text-white transition">All</button>
+          <button onclick="filterCat('Essential')" id="btn-essential" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Essential</button>
+          <button onclick="filterCat('Discretionary')" id="btn-discretionary" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Discretionary</button>
+        </div>
+        <span class="text-xs text-slate-500" id="catCount">18 Categories</span>
       </div>
-      <span class="text-xs text-slate-500" id="catCount">9 Categories</span>
+
+      <div id="categoryContainer" class="space-y-2.5"></div>
     </section>
 
-    <!-- Progress Bars -->
-    <section id="categoryContainer" class="space-y-2.5"></section>
-
-    <!-- Checking Cash Flow Timeline -->
+    <!-- USAA Checking Cash Flow Timeline (1st - 28th) -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
@@ -87,11 +93,11 @@
     </section>
   </main>
 
-  <!-- Statement CSV Upload Modal -->
+  <!-- Statement Upload / Recommendations Modal -->
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <h3 class="font-bold text-sm text-slate-200">Reconcile & Audit Statements</h3>
-      <p class="text-xs text-slate-400">Paste raw statement rows (CSV or text) to detect rate changes and auto-debit adjustments.</p>
+      <p class="text-xs text-slate-400">Paste statement lines (from Checking, AMEX, or Chase) to compare against your budget.</p>
       <textarea id="csvInput" rows="5" placeholder="Paste statement rows here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 font-mono"></textarea>
       <div id="recommendations" class="hidden p-3 bg-slate-950 border border-indigo-900/60 rounded-lg text-xs space-y-1.5 text-slate-300"></div>
       <div class="flex justify-end gap-2 pt-2">
@@ -102,54 +108,78 @@
   </div>
 
   <script>
-    const CARD_BUDGET_CAP = 7800.00;
+    const CARD_BUDGET_CAP = 6400.00;
 
-    let categories = [
-      { name: "Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA" },
-      { name: "Auto Loan", target: 1581.85, spent: 1581.85, type: "Essential", source: "USAA" },
-      { name: "Groceries (Store & Dairy)", target: 1350.00, spent: 1184.20, type: "Essential", source: "AMEX/Chase" },
-      { name: "Flying Horse Club", target: 828.00, spent: 828.18, type: "Discretionary", source: "USAA" },
-      { name: "Gas & Fuel", target: 475.00, spent: 390.15, type: "Essential", source: "AMEX/Chase" },
-      { name: "Brian Discretionary", target: 1000.00, spent: 780.00, type: "Discretionary", source: "AMEX" },
-      { name: "Stephanie Discretionary", target: 1000.00, spent: 1120.50, type: "Discretionary", source: "AMEX" },
-      { name: "Utilities & Ting", target: 444.00, spent: 404.77, type: "Essential", source: "Mixed" },
-      { name: "Subscriptions (Monthly & Annual)", target: 420.00, spent: 388.90, type: "Discretionary", source: "AMEX/Chase" }
+    // All categories directly from your 2026 Budget CSV
+    const defaultCategories = [
+      // AMEX / Chase Card Categories
+      { id: "groceries", name: "Groceries", target: 1000.00, spent: 0, type: "Essential", source: "AMEX/Checking" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 0, type: "Discretionary", source: "AMEX/Chase" },
+      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 0, type: "Essential", source: "AMEX/Chase" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 0, type: "Discretionary", source: "AMEX" },
+      { id: "brian", name: "Brian Personal", target: 1000.00, spent: 0, type: "Discretionary", source: "AMEX" },
+      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 0, type: "Discretionary", source: "AMEX" },
+      { id: "home", name: "Home", target: 150.00, spent: 0, type: "Essential", source: "AMEX" },
+      { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0, type: "Essential", source: "AMEX" },
+      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 0, type: "Essential", source: "AMEX" },
+      { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0, type: "Discretionary", source: "AMEX/Chase" },
+
+      // Checking Cash Flow Categories
+      { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA" },
+      { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 1581.85, type: "Essential", source: "USAA" },
+      { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 828.18, type: "Discretionary", source: "USAA" },
+      { id: "usaa_ins", name: "USAA Insurance", target: 465.00, spent: 324.00, type: "Essential", source: "USAA" },
+      { id: "utilities", name: "Utilities (CSU)", target: 311.00, spent: 311.00, type: "Essential", source: "USAA" },
+      { id: "hoa", name: "HOA (Hammersmith)", target: 250.00, spent: 250.00, type: "Essential", source: "USAA" },
+      { id: "royal_crest", name: "Royal Crest Dairy", target: 130.00, spent: 88.75, type: "Essential", source: "USAA" },
+      { id: "fubo", name: "Fubo TV", target: 125.00, spent: 124.41, type: "Discretionary", source: "USAA" },
+      { id: "vgli", name: "VGLI Insurance", target: 116.00, spent: 116.00, type: "Essential", source: "USAA" },
+      { id: "state_farm", name: "State Farm", target: 34.00, spent: 34.00, type: "Essential", source: "USAA" },
+      { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA" }
     ];
+
+    let categories = [];
+    let currentFilter = 'all';
 
     const scheduledDebits = [
       { day: 1, name: "Freedom Mortgage", amount: 2864.20 },
       { day: 1, name: "Tricare Select", amount: 31.25 },
       { day: 3, name: "VGLI Insurance", amount: 116.00 },
       { day: 4, name: "Fubo TV", amount: 124.41 },
-      { day: 9, name: "Utilities", amount: 311.00 },
+      { day: 9, name: "Utilities (CSU)", amount: 311.00 },
       { day: 14, name: "State Farm", amount: 34.00 },
       { day: 16, name: "USAA Auto Loan", amount: 1581.85 },
       { day: 16, name: "USAA P&C Insurance", amount: 324.00 },
       { day: 18, name: "Flying Horse Club", amount: 828.00 },
       { day: 21, name: "HOA (Hammersmith)", amount: 250.00 },
       { day: 21, name: "Royal Crest Dairy", amount: 95.00 },
-      { day: 28, name: "AMEX & Chase Card Payoff", amount: 7800.00 }
+      { day: 28, name: "AMEX Card Payment", amount: 6400.00 }
     ];
 
     function init() {
-      // Dynamic calendar-month calculation
+      // Calculate calendar month cycle elapsed %
       const now = new Date();
       const day = now.getDate();
       const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       const elapsedPct = Math.round((day / totalDays) * 100);
-      
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const currentMonth = monthNames[now.getMonth()];
+      document.getElementById('cycleLabel').innerText = `${monthNames[now.getMonth()]} Elapsed: ${elapsedPct}% (Day ${day}/${totalDays})`;
 
-      document.getElementById('cycleLabel').innerText = `${currentMonth} Elapsed: ${elapsedPct}% (Day ${day}/${totalDays})`;
+      // Load saved categories or use defaults
+      const savedCats = localStorage.getItem('budget_categories_v2');
+      if (savedCats) {
+        categories = JSON.parse(savedCats);
+      } else {
+        categories = defaultCategories;
+      }
 
-      // Load saved values from mobile localStorage
+      // Load calculator inputs
       document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '';
       document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '';
       document.getElementById('erInput').value = localStorage.getItem('budget_er') || '';
 
       calcSpending();
-      renderCategories('all');
+      renderCategories(currentFilter);
       renderCashFlow();
     }
 
@@ -175,21 +205,22 @@
 
       const ou = document.getElementById('overUnder');
       if (remaining >= 0) {
-        ou.innerText = `$${remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} left`;
-        ou.className = 'text-slate-400';
+        ou.innerText = `$${remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} remaining`;
+        ou.className = 'text-slate-400 font-mono';
       } else {
-        ou.innerText = `$${Math.abs(remaining).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} over`;
-        ou.className = 'text-rose-400 font-semibold';
+        ou.innerText = `$${Math.abs(remaining).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} over budget`;
+        ou.className = 'text-rose-400 font-semibold font-mono';
       }
     }
 
     function renderCategories(filter) {
+      currentFilter = filter;
       const container = document.getElementById('categoryContainer');
       container.innerHTML = '';
       const filtered = categories.filter(c => filter === 'all' || c.type === filter);
       document.getElementById('catCount').innerText = `${filtered.length} Categories`;
 
-      filtered.forEach(c => {
+      filtered.forEach((c) => {
         const pct = Math.min(100, (c.spent / c.target) * 100);
         const color = pct > 100 ? 'bg-rose-500' : (pct > 85 ? 'bg-amber-500' : 'bg-indigo-500');
         const badge = c.type === 'Essential' ? 'text-emerald-400 bg-emerald-950/70 border-emerald-800' : 'text-purple-400 bg-purple-950/70 border-purple-800';
@@ -201,18 +232,39 @@
                 <span class="text-xs font-semibold text-slate-200">${c.name}</span>
                 <span class="text-[9px] px-1.5 py-0.5 ml-1 rounded border ${badge}">${c.type}</span>
               </div>
-              <span class="text-xs font-mono text-slate-300">$${c.spent.toFixed(2)} / $${c.target.toFixed(2)}</span>
+              <div class="flex items-center space-x-1 text-xs font-mono">
+                <span class="text-slate-400">$</span>
+                <input type="number" step="0.01" value="${c.spent.toFixed(2)}" onchange="updateCatSpend('${c.id}', this.value)" class="w-16 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-slate-200 focus:outline-none focus:border-indigo-500" />
+                <span class="text-slate-500">/ $${c.target.toFixed(0)}</span>
+              </div>
             </div>
             <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-1">
               <div class="${color} h-full transition-all duration-300" style="width: ${pct}%"></div>
             </div>
-            <div class="flex justify-between text-[11px] text-slate-500">
+            <div class="flex justify-between text-[11px] text-slate-500 font-sans">
               <span>${c.source}</span>
               <span>${pct.toFixed(0)}%</span>
             </div>
           </div>
         `;
       });
+    }
+
+    function updateCatSpend(id, val) {
+      const idx = categories.findIndex(c => c.id === id);
+      if (idx !== -1) {
+        categories[idx].spent = parseFloat(val) || 0;
+        localStorage.setItem('budget_categories_v2', JSON.stringify(categories));
+        renderCategories(currentFilter);
+      }
+    }
+
+    function resetAllActuals() {
+      if (confirm("Reset all category spending to $0?")) {
+        categories.forEach(c => c.spent = 0);
+        localStorage.setItem('budget_categories_v2', JSON.stringify(categories));
+        renderCategories(currentFilter);
+      }
     }
 
     function filterCat(type) {
