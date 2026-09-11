@@ -12,15 +12,15 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-20 font-sans antialiased select-none">
 
-  <!-- Sticky Mobile Header -->
+  <!-- Mobile Header -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
     <div>
       <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget & Audit</h1>
       <p class="text-[11px] text-slate-400">AMEX · Chase · USAA Checking</p>
     </div>
     <div class="flex items-center gap-2">
-      <button onclick="resetAllActuals()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
-        Reset Spend
+      <button onclick="resetToStatementData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
+        Reload Statements
       </button>
       <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow">
         Audit Statement
@@ -71,7 +71,7 @@
       </div>
     </section>
 
-    <!-- Budget Mode Switcher: Planned vs Statement Reality -->
+    <!-- Budget Architecture Switcher -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md flex items-center justify-between">
       <div>
         <span class="text-xs font-semibold text-slate-200 block">Target Architecture</span>
@@ -98,7 +98,7 @@
       <div id="categoryContainer" class="space-y-2.5"></div>
     </section>
 
-    <!-- USAA Checking Cash Flow Timeline (1st - 28th) -->
+    <!-- Checking Cash Flow Timeline (1st - 28th) -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
@@ -107,7 +107,7 @@
       <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80"></div>
     </section>
 
-    <!-- Sinking Fund & Emergency Planning Overview Card -->
+    <!-- Emergency & Savings Overview -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2 text-xs">
       <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Emergency & Savings Overview</h2>
       <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
@@ -125,11 +125,11 @@
     </section>
   </main>
 
-  <!-- Statement Upload / Recommendations Modal -->
+  <!-- Statement Upload Modal -->
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <h3 class="font-bold text-sm text-slate-200">Reconcile & Audit Statements</h3>
-      <p class="text-xs text-slate-400">Paste statement lines (from Checking, AMEX, or Chase) to compare against your budget.</p>
+      <p class="text-xs text-slate-400">Paste statement lines (from Checking, AMEX, or Chase) to audit against targets.</p>
       <textarea id="csvInput" rows="6" placeholder="Paste statement rows here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 font-mono"></textarea>
       <div id="recommendations" class="hidden p-3 bg-slate-950 border border-indigo-900/60 rounded-lg text-xs space-y-1.5 text-slate-300 max-h-48 overflow-y-auto"></div>
       <div class="flex justify-end gap-2 pt-2">
@@ -140,82 +140,81 @@
   </div>
 
   <script>
-    // 1. Planned Budget Dataset (Exact numbers from 2026 Budget CSV)
+    // 1. Plan Baseline Dataset (Exact Targets + Actual Spend Ingested from Statements)
     const planCategories = [
-      // Card Discretionary & Variable
-      { id: "groceries", name: "Groceries", target: 1000.00, spent: 0, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joes" },
-      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 0, type: "Discretionary", source: "AMEX/Chase", note: "Dining & Coffee" },
-      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 0, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, King Soopers, Costco" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Clothing, Boutiques, Personal" },
-      { id: "brian", name: "Brian Personal", target: 1000.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
-      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Games, Shows, Incidentals" },
-      { id: "home", name: "Home", target: 150.00, spent: 0, type: "Essential", source: "AMEX", note: "Home Depot, Ace, Supplies" },
-      { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0, type: "Essential", source: "AMEX", note: "Health & Copays" },
-      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 0, type: "Essential", source: "AMEX", note: "Woodmen $300, Pet Ins $138, Giving" },
-      { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
+      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "KS $149.18 + TJs $178.07" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining $123 + Iceland dining $576" },
+      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven $57, KS Fuel $107, Chase Gas $152" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro $176, Target $184, Mododoc $35, Kadlin" },
+      { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "SP My Medic $139.76" },
+      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets Vintage $11.58" },
+      { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace, Supplies" },
+      { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Wellness" },
+      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103, HBO $19" },
+      { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
 
-      // Checking Cash Flow
-      { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Day 1 Debit" },
-      { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 1581.85, type: "Essential", source: "USAA", note: "Day 16 Debit" },
-      { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 828.18, type: "Discretionary", source: "USAA", note: "Day 18 Debit" },
-      { id: "usaa_ins", name: "USAA P&C Insurance", target: 465.00, spent: 324.00, type: "Essential", source: "USAA", note: "Day 16 Debit" },
-      { id: "utilities", name: "Utilities (CSU)", target: 311.00, spent: 311.00, type: "Essential", source: "USAA", note: "Day 9 Debit" },
-      { id: "hoa", name: "HOA (Hammersmith)", target: 250.00, spent: 250.00, type: "Essential", source: "USAA", note: "Day 21 Debit" },
-      { id: "royal_crest", name: "Royal Crest Dairy", target: 130.00, spent: 95.00, type: "Essential", source: "USAA", note: "Day 21 Debit" },
-      { id: "fubo", name: "Fubo TV", target: 125.00, spent: 124.41, type: "Discretionary", source: "USAA", note: "Day 4 Debit" },
-      { id: "vgli", name: "VGLI Insurance", target: 116.00, spent: 116.00, type: "Essential", source: "USAA", note: "Day 3 Debit" },
-      { id: "state_farm", name: "State Farm", target: 34.00, spent: 34.00, type: "Essential", source: "USAA", note: "Day 14 Debit" },
-      { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Day 1 Debit" }
+      // Checking Outflows
+      { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
+      { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
+      { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
+      { id: "usaa_ins", name: "USAA P&C Insurance", target: 465.00, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
+      { id: "utilities", name: "Utilities (CSU)", target: 311.00, spent: 311.00, type: "Essential", source: "USAA", note: "Posted 9/8" },
+      { id: "hoa", name: "HOA (Hammersmith)", target: 250.00, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 21" },
+      { id: "royal_crest", name: "Royal Crest Dairy", target: 130.00, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 21" },
+      { id: "fubo", name: "Fubo TV", target: 125.00, spent: 124.41, type: "Discretionary", source: "USAA", note: "Posted 9/4" },
+      { id: "vgli", name: "VGLI Insurance", target: 116.00, spent: 116.00, type: "Essential", source: "USAA", note: "Posted 9/8" },
+      { id: "state_farm", name: "State Farm", target: 34.00, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 14" },
+      { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
-    // 2. Statement Reality Dataset (Tuned based on statements & audit)
+    // 2. Statement Reality Dataset (Tuned Targets + Actual Spend Ingested from Statements)
     const realityCategories = [
-      // Card Discretionary & Variable (Refined)
-      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 0, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150) + Royal" },
-      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 0, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee crawls, Takeout" },
-      { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 0, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, KS Fuel, Costco Gas" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Anthropologie, Free People, Alo Yoga" },
-      { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Fly fishing, Durston, Outdoor" },
-      { id: "grooming_auto", name: "Car Washes & Grooming", target: 260.00, spent: 0, type: "Essential", source: "AMEX", note: "Club Car Wash ($72), Sport Clips ($90), E-470 ($60)" },
-      { id: "pet_care", name: "Pet Grooming & Kennel", target: 180.00, spent: 0, type: "Essential", source: "AMEX/Chase", note: "Erin Drew ($143), Jackson Creek Kennel" },
-      { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Averages 2-3 visits per month" },
-      { id: "home", name: "Home Maintenance", target: 150.00, spent: 0, type: "Essential", source: "AMEX", note: "Home Depot, Ace Hardware" },
-      { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0, type: "Essential", source: "AMEX", note: "UCHealth, Penrad, Eye copays" },
-      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 0, type: "Essential", source: "AMEX", note: "Woodmen $300, Spot $138, Rescue $103, Tebow $103" },
-      { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0, type: "Discretionary", source: "AMEX/Chase", note: "Includes Chase $95 Fee, Costco, Prime" },
-      { id: "ent_misc", name: "Entertainment & Incidentals", target: 500.00, spent: 0, type: "Discretionary", source: "AMEX", note: "Movies, Tickets, Gifts" },
+      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "KS $149.18 + TJs $178.07" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining $123 + Iceland dining $576" },
+      { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven $57, KS Fuel $107, Chase Gas $152" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro $176, Target $184, Mododoc $35, Kadlin" },
+      { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "SP My Medic $139.76" },
+      { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash $24.00 + E-470 Tolls $30.00" },
+      { id: "pet_care", name: "Pet Grooming & Kennel", target: 180.00, spent: 143.75, type: "Essential", source: "AMEX/Chase", note: "Erin Drew grooming $143.75" },
+      { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 47.31, type: "Discretionary", source: "AMEX", note: "Posted 9/7" },
+      { id: "home", name: "Home Maintenance", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Hardware" },
+      { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Clinics" },
+      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103, HBO $19" },
+      { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Chase $95 Fee" },
+      { id: "ent_misc", name: "Entertainment & Incidentals", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets Vintage $11.58" },
 
-      // Checking Cash Flow (Refined)
-      { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Escrow increased July 2026" },
-      { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 1581.85, type: "Essential", source: "USAA", note: "Day 16 Debit" },
-      { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 828.18, type: "Discretionary", source: "USAA", note: "Current billing rate" },
-      { id: "usaa_ins", name: "USAA P&C Insurance", target: 324.00, spent: 324.00, type: "Essential", source: "USAA", note: "Actual rate since June 2026" },
-      { id: "utilities", name: "Utilities (CSU)", target: 311.00, spent: 311.00, type: "Essential", source: "USAA", note: "Day 9 Debit" },
-      { id: "hoa", name: "HOA (Hammersmith)", target: 250.00, spent: 250.00, type: "Essential", source: "USAA", note: "Day 21 Debit" },
-      { id: "royal_crest", name: "Royal Crest Dairy", target: 95.00, spent: 95.00, type: "Essential", source: "USAA", note: "Average actual delivery" },
-      { id: "fubo", name: "Fubo TV", target: 124.41, spent: 124.41, type: "Discretionary", source: "USAA", note: "Current bill rate" },
-      { id: "vgli", name: "VGLI Insurance", target: 116.00, spent: 116.00, type: "Essential", source: "USAA", note: "Day 3 Debit" },
-      { id: "state_farm", name: "State Farm", target: 34.00, spent: 34.00, type: "Essential", source: "USAA", note: "Day 14 Debit" },
-      { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Day 1 Debit" }
+      // Checking Outflows (Reality Tuned)
+      { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
+      { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
+      { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
+      { id: "usaa_ins", name: "USAA P&C Insurance", target: 324.00, spent: 0.00, type: "Essential", source: "USAA", note: "Actual rate since June 2026" },
+      { id: "utilities", name: "Utilities (CSU)", target: 311.00, spent: 311.00, type: "Essential", source: "USAA", note: "Posted 9/8" },
+      { id: "hoa", name: "HOA (Hammersmith)", target: 250.00, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 21" },
+      { id: "royal_crest", name: "Royal Crest Dairy", target: 95.00, spent: 0.00, type: "Essential", source: "USAA", note: "Average actual delivery rate" },
+      { id: "fubo", name: "Fubo TV", target: 124.41, spent: 124.41, type: "Discretionary", source: "USAA", note: "Posted 9/4" },
+      { id: "vgli", name: "VGLI Insurance", target: 116.00, spent: 116.00, type: "Essential", source: "USAA", note: "Posted 9/8" },
+      { id: "state_farm", name: "State Farm", target: 34.00, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 14" },
+      { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
-    let currentMode = localStorage.getItem('budget_mode') || 'plan';
+    let currentMode = localStorage.getItem('budget_mode') || 'reality';
     let currentFilter = 'all';
     let categories = [];
 
-    const scheduledDebits = [
-      { day: 1, name: "Freedom Mortgage", amount: 2864.20 },
-      { day: 1, name: "Tricare Select", amount: 31.25 },
-      { day: 3, name: "VGLI Insurance", amount: 116.00 },
-      { day: 4, name: "Fubo TV", amount: 124.41 },
-      { day: 9, name: "Utilities (CSU)", amount: 311.00 },
-      { day: 14, name: "State Farm", amount: 34.00 },
-      { day: 16, name: "USAA Auto Loan", amount: 1581.85 },
-      { day: 16, name: "USAA P&C Insurance", amount: 324.00 },
-      { day: 18, name: "Flying Horse Club", amount: 828.00 },
-      { day: 21, name: "HOA (Hammersmith)", amount: 250.00 },
-      { day: 21, name: "Royal Crest Dairy", amount: 95.00 },
-      { day: 28, name: "Card Payoff (AMEX/Chase)", amount: 6400.00 }
+    // Base scheduled debits
+    const baseDebits = [
+      { day: 1, name: "Freedom Mortgage", amountPlan: 2864.20, amountReality: 2864.20 },
+      { day: 1, name: "Tricare Select", amountPlan: 31.25, amountReality: 31.25 },
+      { day: 3, name: "VGLI Insurance", amountPlan: 116.00, amountReality: 116.00 },
+      { day: 4, name: "Fubo TV", amountPlan: 125.00, amountReality: 124.41 },
+      { day: 9, name: "Utilities (CSU)", amountPlan: 311.00, amountReality: 311.00 },
+      { day: 14, name: "State Farm", amountPlan: 34.00, amountReality: 34.00 },
+      { day: 16, name: "USAA Auto Loan", amountPlan: 1581.85, amountReality: 1581.85 },
+      { day: 16, name: "USAA P&C Insurance", amountPlan: 465.00, amountReality: 324.00 },
+      { day: 18, name: "Flying Horse Club", amountPlan: 828.00, amountReality: 828.00 },
+      { day: 21, name: "HOA (Hammersmith)", amountPlan: 250.00, amountReality: 250.00 },
+      { day: 21, name: "Royal Crest Dairy", amountPlan: 130.00, amountReality: 95.00 },
+      { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00 }
     ];
 
     function init() {
@@ -227,13 +226,12 @@
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       document.getElementById('cycleLabel').innerText = `${monthNames[now.getMonth()]} Elapsed: ${elapsedPct}% (Day ${day}/${totalDays})`;
 
-      // Load saved inputs
-      document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '';
-      document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '';
-      document.getElementById('erInput').value = localStorage.getItem('budget_er') || '';
+      // Load saved inputs or default to current known balances
+      document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '6822.61';
+      document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '3539.53';
+      document.getElementById('erInput').value = localStorage.getItem('budget_er') || '2126.96';
 
       setBudgetMode(currentMode, false);
-      renderCashFlow();
     }
 
     function setBudgetMode(mode, save = true) {
@@ -251,13 +249,13 @@
 
       document.getElementById('modeLabel').innerText = isPlan ? 'Plan' : 'Reality';
       document.getElementById('modeSubtext').innerText = isPlan 
-        ? 'Showing 2026 Planned Budget Numbers ($6,400 Card Target)' 
-        : 'Showing Statement Reality Tuned Numbers ($7,800 Card Target)';
+        ? 'Showing 2026 Planned Baseline ($6,400 Card Payment)' 
+        : 'Showing Statement Reality Tuned Numbers ($7,800 Card Payment)';
 
       const cardCap = isPlan ? 6400.00 : 7800.00;
       document.getElementById('targetCardLimit').innerText = `$${cardCap.toLocaleString('en-US', {minimumFractionDigits: 2})} / mo`;
 
-      // Load category targets based on mode and retrieve preserved spend from storage
+      // Load categories with preserved local edits if present
       const baseCats = isPlan ? planCategories : realityCategories;
       const savedSpendMap = JSON.parse(localStorage.getItem('budget_spend_map') || '{}');
 
@@ -268,6 +266,7 @@
 
       calcSpending();
       renderCategories(currentFilter);
+      renderCashFlow();
     }
 
     function calcSpending() {
@@ -352,15 +351,10 @@
       }
     }
 
-    function resetAllActuals() {
-      if (confirm("Reset all category spending to $0?")) {
-        const savedSpendMap = {};
-        categories.forEach(c => {
-          c.spent = 0;
-          savedSpendMap[c.id] = 0;
-        });
-        localStorage.setItem('budget_spend_map', JSON.stringify(savedSpendMap));
-        renderCategories(currentFilter);
+    function resetToStatementData() {
+      if (confirm("Reload actual spending numbers calculated from statements?")) {
+        localStorage.removeItem('budget_spend_map');
+        setBudgetMode(currentMode, false);
       }
     }
 
@@ -375,15 +369,19 @@
     function renderCashFlow() {
       const list = document.getElementById('cashFlowList');
       list.innerHTML = '';
-      scheduledDebits.forEach((item, idx) => {
+      const isPlan = currentMode === 'plan';
+
+      baseDebits.forEach((item, idx) => {
         const checked = localStorage.getItem(`chk_${idx}`) === 'true';
+        const amount = isPlan ? item.amountPlan : item.amountReality;
+
         list.innerHTML += `
           <div class="flex justify-between items-center pt-2">
             <div class="flex items-center space-x-2.5">
               <input type="checkbox" id="chk-${idx}" onchange="toggleCheck(${idx})" ${checked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0 cursor-pointer">
               <label for="chk-${idx}" class="text-slate-300 font-medium cursor-pointer ${checked ? 'line-through text-slate-500' : ''}">Day ${item.day}: ${item.name}</label>
             </div>
-            <span class="font-mono text-slate-400">-$${item.amount.toFixed(2)}</span>
+            <span class="font-mono ${item.day === 28 ? 'text-indigo-400 font-bold' : 'text-slate-400'}">-$${amount.toFixed(2)}</span>
           </div>
         `;
       });
@@ -396,7 +394,7 @@
     }
 
     function resetChecklist() {
-      scheduledDebits.forEach((_, idx) => localStorage.removeItem(`chk_${idx}`));
+      baseDebits.forEach((_, idx) => localStorage.removeItem(`chk_${idx}`));
       renderCashFlow();
     }
 
