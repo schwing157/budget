@@ -10,9 +10,9 @@
   <title>2026 Budget & Cash Flow Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-20 font-sans antialiased select-none">
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 font-sans antialiased select-none">
 
-  <!-- Mobile Header -->
+  <!-- Header -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
     <div>
       <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget & Audit</h1>
@@ -98,7 +98,7 @@
       <div id="categoryContainer" class="space-y-2.5"></div>
     </section>
 
-    <!-- Checking Cash Flow Timeline (1st - 28th) -->
+    <!-- Checking Cash Flow Timeline -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
@@ -106,33 +106,16 @@
       </div>
       <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80"></div>
     </section>
-
-    <!-- Emergency & Savings Overview -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2 text-xs">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Emergency & Savings Overview</h2>
-      <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
-        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block font-sans">Current Emergency Fund</span>
-          <span class="text-emerald-400 font-bold text-sm">$28,000.00</span>
-          <span class="text-[10px] text-slate-400 block font-sans">4.43 mo runway (Target $40k)</span>
-        </div>
-        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block font-sans">Monthly Savings Rate</span>
-          <span class="text-indigo-400 font-bold text-sm">$5,000.00/mo</span>
-          <span class="text-[10px] text-slate-400 block font-sans">$3k Long / $2k Short</span>
-        </div>
-      </div>
-    </section>
   </main>
 
-  <!-- Statement CSV Upload Modal -->
+  <!-- Step 1: Statement CSV Upload Modal -->
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
         <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select a CSV statement exported from AMEX, Chase, or USAA. The app categorizes transactions locally on your phone.</p>
+      <p class="text-xs text-slate-400">Select a CSV statement exported from AMEX, Chase, or USAA. Travel transactions will be staged for assignment.</p>
 
       <div class="space-y-3">
         <div>
@@ -142,34 +125,49 @@
 
         <div class="flex items-center space-x-2 pt-1">
           <input type="checkbox" id="overwriteSpendChk" class="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0">
-          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Overwrite current category spend (uncheck to add to current)</label>
+          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Overwrite current category spend</label>
         </div>
       </div>
 
-      <div id="ingestFeedback" class="hidden p-3 bg-slate-950 border border-indigo-900/60 rounded-lg text-xs space-y-1.5 text-slate-300 max-h-48 overflow-y-auto"></div>
-
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
-        <button onclick="processSelectedCSV()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Process Statement</button>
+        <button onclick="startCSVIngestion()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Scan & Assign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Interactive Travel Assignment Modal -->
+  <div id="travelAssignModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
+      <div>
+        <h3 class="font-bold text-sm text-slate-200">Assign Travel & Flights</h3>
+        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add directly to your Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal spending.</p>
+      </div>
+
+      <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
+
+      <div class="flex justify-between items-center pt-3 border-t border-slate-800 text-xs">
+        <span id="travelReviewStatus" class="text-slate-400">0 of 0 assigned</span>
+        <button onclick="finalizeStatementIngestion()" class="px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow">Confirm & Save</button>
       </div>
     </div>
   </div>
 
   <script>
-    // 1. Plan Baseline Dataset
+    // 1. Plan Baseline Dataset[cite: 2]
     const planCategories = [
       { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joe's" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee, Takeout" },
       { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, King Soopers Fuel, Costco" },
       { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Target, Alo" },
       { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
-      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets, Movies, Incidentals" },
+      { id: "ent_misc", name: "Entertainment & Travel", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
       { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Supplies" },
       { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Wellness" },
       { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
       { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
 
-      // Checking Outflows
+      // Checking Outflows[cite: 2]
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
       { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
@@ -183,7 +181,7 @@
       { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
-    // 2. Statement Reality Dataset
+    // 2. Statement Reality Dataset[cite: 2]
     const realityCategories = [
       { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150)" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland dining" },
@@ -197,9 +195,9 @@
       { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays, Penrad, Eye clinics" },
       { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
       { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Chase $95 Fee, Costco, Prime" },
-      { id: "ent_misc", name: "Entertainment & Incidentals", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets, Movies, Local events" },
+      { id: "ent_misc", name: "Entertainment & Travel", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
 
-      // Checking Outflows
+      // Checking Outflows[cite: 2]
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
       { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
@@ -232,8 +230,11 @@
       { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00 }
     ];
 
+    // Global staging area for CSV processing
+    let stagedSpendMap = {};
+    let stagedTravelList = [];
+
     function init() {
-      // Dynamic calendar-month calculation
       const now = new Date();
       const day = now.getDate();
       const totalDays = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -241,7 +242,6 @@
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       document.getElementById('cycleLabel').innerText = `${monthNames[now.getMonth()]} Elapsed: ${elapsedPct}% (Day ${day}/${totalDays})`;
 
-      // Load saved inputs or default to current known balances
       document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '6822.61';
       document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '3539.53';
       document.getElementById('erInput').value = localStorage.getItem('budget_er') || '2126.96';
@@ -270,7 +270,6 @@
       const cardCap = isPlan ? 6400.00 : 7800.00;
       document.getElementById('targetCardLimit').innerText = `$${cardCap.toLocaleString('en-US', {minimumFractionDigits: 2})} / mo`;
 
-      // Load category targets
       const baseCats = isPlan ? planCategories : realityCategories;
       const savedSpendMap = JSON.parse(localStorage.getItem('budget_spend_map') || '{}');
 
@@ -413,14 +412,13 @@
       renderCashFlow();
     }
 
-    // --- CSV Ingestion & Parsing Engine ---
-    function processSelectedCSV() {
+    // --- CSV PARSING & INTERACTIVE TRAVEL ASSIGNMENT ---
+    function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
-      const feedback = document.getElementById('ingestFeedback');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
 
       if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please choose a CSV file first.");
+        alert("Please select a CSV statement file first.");
         return;
       }
 
@@ -432,133 +430,198 @@
         const lines = text.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
 
         if (lines.length < 2) {
-          alert("Selected CSV is empty or has no transaction rows.");
+          alert("Selected CSV is empty.");
           return;
         }
 
-        // Initialize category spend accumulator
-        let incomingSpend = {};
+        stagedSpendMap = {};
         if (!overwrite) {
-          categories.forEach(c => incomingSpend[c.id] = c.spent || 0);
+          categories.forEach(c => stagedSpendMap[c.id] = c.spent || 0);
         } else {
-          categories.forEach(c => incomingSpend[c.id] = 0);
+          categories.forEach(c => stagedSpendMap[c.id] = 0);
         }
 
-        let parsedCount = 0;
-        let totalParsedSpend = 0;
-        let erReimbursements = 0;
+        stagedTravelList = [];
 
-        // Detect CSV format based on header row
         const header = lines[0].toLowerCase();
-        const isAmex = header.includes('card member') || header.includes('account #') || header.includes('description');
+        const isAmex = header.includes('card member') || header.includes('account #');
         const isChase = header.includes('trans date') || header.includes('post date');
+
+        // Travel keywords to flag for interactive review
+        const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR'];
+        const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
 
         for (let i = 1; i < lines.length; i++) {
           const row = lines[i];
-          // Handle comma or pipe separated lines
           const delim = row.includes('|') ? '|' : ',';
           const cols = row.split(delim).map(c => c.replace(/^["']|["']$/g, '').trim());
-
           if (cols.length < 3) continue;
 
+          let date = cols[0];
           let desc = "";
           let amt = 0;
+          let member = "";
 
           if (isChase && cols.length >= 6) {
             desc = cols[2];
             amt = parseFloat(cols[5]);
-            // On Chase statements, debits/sales are negative (-45.66)
             if (amt < 0) amt = Math.abs(amt);
-            else if (amt > 0) amt = 0; // Skip payments / refunds
+            else continue;
           } else if (isAmex) {
             desc = cols[1];
+            member = cols[2] || "";
             amt = parseFloat(cols[cols.length - 1]);
-            // On AMEX, positive is charge, negative is payment/refund
-            if (amt < 0) amt = 0; 
+            if (amt <= 0) continue;
           } else {
-            // General / USAA format
             desc = cols[1];
             amt = parseFloat(cols[2]);
             if (amt < 0) amt = Math.abs(amt);
+            else if (amt <= 0) continue;
           }
 
           if (isNaN(amt) || amt <= 0) continue;
           const uDesc = desc.toUpperCase();
 
-          // Skip credit card payoff debits from inflating categories
-          if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('AUTOMATIC PAYMENT')) {
+          // Skip credit card payoff debits
+          if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU')) continue;
+
+          // Check if this is a travel charge
+          const isTravel = travelKeywords.some(k => uDesc.includes(k));
+
+          if (isTravel) {
+            // Intelligent pre-selection suggestion based on location & cardmember
+            const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
+            
+            stagedTravelList.push({
+              id: `trv_${i}`,
+              date: date,
+              desc: desc,
+              amount: amt,
+              member: member,
+              assigned: suggestsWork ? 'work' : 'personal'
+            });
             continue;
           }
 
-          // Rule-based classification
-          let matchedId = null;
-
+          // Standard category rules
+          let cat = 'ent_misc';
           if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK')) {
-            matchedId = 'gas';
+            cat = 'gas';
           } else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
-            matchedId = 'groceries';
+            cat = 'groceries';
           } else if (uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA')) {
-            matchedId = 'stephanie';
+            cat = 'stephanie';
           } else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE')) {
-            matchedId = 'brian';
+            cat = 'brian';
           } else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH')) {
-            matchedId = 'grooming_auto';
+            cat = 'grooming_auto';
           } else if (uDesc.includes('ERIN DREW') || uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
-            matchedId = 'pet_care';
+            cat = 'pet_care';
           } else if (uDesc.includes('INTERQUEST LIQUOR')) {
-            matchedId = 'liquor';
+            cat = 'liquor';
           } else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
-            matchedId = 'monthly_subs';
+            cat = 'monthly_subs';
           } else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
-            matchedId = 'home';
+            cat = 'home';
           } else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('BREWING')) {
-            matchedId = 'food_drink';
-          } else if (uDesc.includes('HAMPTON INN') || uDesc.includes('HILTON') || uDesc.includes('HOMEWOOD') || uDesc.includes('UNITED AIRLINES') || uDesc.includes('HERTZ') || uDesc.includes('AVIS')) {
-            erReimbursements += amt;
-            matchedId = 'ent_misc';
-          } else {
-            matchedId = 'ent_misc';
+            cat = 'food_drink';
           }
 
-          if (matchedId && incomingSpend[matchedId] !== undefined) {
-            incomingSpend[matchedId] += amt;
-            parsedCount++;
-            totalParsedSpend += amt;
+          if (stagedSpendMap[cat] !== undefined) {
+            stagedSpendMap[cat] += amt;
           }
         }
 
-        // Save new spend map
-        localStorage.setItem('budget_spend_map', JSON.stringify(incomingSpend));
+        closeModal('uploadModal');
 
-        // Update category array
-        categories.forEach(c => {
-          if (incomingSpend[c.id] !== undefined) {
-            c.spent = incomingSpend[c.id];
-          }
-        });
-
-        // Display results in modal
-        feedback.classList.remove('hidden');
-        feedback.innerHTML = `
-          <strong class="text-emerald-400 font-semibold">Ingestion Successful!</strong><br/>
-          • Processed: <span class="font-mono text-slate-200">${parsedCount} transactions</span><br/>
-          • Total Ingested Spend: <span class="font-mono text-slate-200">$${totalParsedSpend.toFixed(2)}</span><br/>
-          • Potential Travel/Work Expense: <span class="font-mono text-amber-300">$${erReimbursements.toFixed(2)}</span><br/>
-          • Mode: <span class="text-indigo-400 font-semibold">${overwrite ? 'Overwrote' : 'Appended to'} category totals</span>
-        `;
-
-        renderCategories(currentFilter);
-        calcSpending();
+        // If travel transactions found, launch assignment modal; otherwise finalize directly
+        if (stagedTravelList.length > 0) {
+          renderTravelQueue();
+          openModal('travelAssignModal');
+        } else {
+          commitStagedData();
+          alert("Statement processed successfully (no travel items flagged).");
+        }
       };
 
       reader.readAsText(file);
     }
 
-    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-    function closeModal(id) { 
-      document.getElementById(id).classList.add('hidden'); 
-      document.getElementById('ingestFeedback').classList.add('hidden');
+    function renderTravelQueue() {
+      const container = document.getElementById('travelQueueList');
+      container.innerHTML = '';
+
+      stagedTravelList.forEach((t, idx) => {
+        const isWork = t.assigned === 'work';
+        container.innerHTML += `
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-xs font-semibold text-slate-200 leading-snug">${t.desc}</p>
+                <span class="text-[10px] text-slate-500">${t.date} ${t.member ? '· ' + t.member : ''}</span>
+              </div>
+              <span class="text-xs font-mono font-bold text-slate-200 ml-2">$${t.amount.toFixed(2)}</span>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="setTravelType(${idx}, 'work')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${isWork ? 'bg-amber-500/20 text-amber-300 border-amber-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
+                🏢 Work ER
+              </button>
+              <button onclick="setTravelType(${idx}, 'personal')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${!isWork ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
+                🌴 Personal
+              </button>
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('travelReviewStatus').innerText = `${stagedTravelList.length} items staged`;
     }
+
+    function setTravelType(idx, type) {
+      stagedTravelList[idx].assigned = type;
+      renderTravelQueue();
+    }
+
+    function finalizeStatementIngestion() {
+      let addedWorkER = 0;
+      let addedPersonalTravel = 0;
+
+      stagedTravelList.forEach(t => {
+        if (t.assigned === 'work') {
+          addedWorkER += t.amount;
+        } else {
+          addedPersonalTravel += t.amount;
+        }
+      });
+
+      // Add personal travel to Entertainment category
+      if (stagedSpendMap['ent_misc'] !== undefined) {
+        stagedSpendMap['ent_misc'] += addedPersonalTravel;
+      }
+
+      // Automatically increase the Work ER field on the top calculator
+      const currentER = parseFloat(document.getElementById('erInput').value) || 0;
+      const newER = currentER + addedWorkER;
+      document.getElementById('erInput').value = newER.toFixed(2);
+      localStorage.setItem('budget_er', newER);
+
+      commitStagedData();
+      closeModal('travelAssignModal');
+
+      alert(`Statement Ingested!\n• Added to Work ER Float: +$${addedWorkER.toFixed(2)}\n• Added to Personal Travel: +$${addedPersonalTravel.toFixed(2)}`);
+    }
+
+    function commitStagedData() {
+      localStorage.setItem('budget_spend_map', JSON.stringify(stagedSpendMap));
+      categories.forEach(c => {
+        if (stagedSpendMap[c.id] !== undefined) c.spent = stagedSpendMap[c.id];
+      });
+      renderCategories(currentFilter);
+      calcSpending();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
     window.onload = init;
   </script>
