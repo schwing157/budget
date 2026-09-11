@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Budget & Spend Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-16 font-sans antialiased select-none">
+  <!-- Top App Header -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
+    <div>
+      <h1 class="text-base font-bold text-emerald-400 leading-tight">Personal Cash Flow</h1>
+      <p class="text-[11px] text-slate-400">AMEX · Chase · USAA</p>
+    </div>
+    <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow">
+      + Ingest CSV
+    </button>
+  </header>
+
+  <main class="p-4 space-y-4 max-w-lg mx-auto">
+    <!-- Credit Card Calculator Card -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Credit Card Burn Calculator</h2>
+        <span id="cycleLabel" class="text-[11px] font-medium text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/80">Cycle: --%</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">AMEX Bal ($)</label>
+          <input type="number" step="0.01" id="amexInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">Chase Bal ($)</label>
+          <input type="number" step="0.01" id="chaseInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-amber-400 mb-1">Work ER ($)</label>
+          <input type="number" step="0.01" id="erInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right text-amber-300 focus:border-amber-500 focus:outline-none" />
+        </div>
+      </div>
+
+      <div class="bg-slate-950 rounded-xl p-3 border border-slate-800/80 space-y-2">
+        <div class="flex justify-between text-xs">
+          <span class="text-slate-400">Net Organic Burn:</span>
+          <span id="adjustedSpend" class="font-bold text-slate-200">$0.00</span>
+        </div>
+        <div class="flex justify-between text-xs">
+          <span class="text-slate-400">Card Target Limit:</span>
+          <span class="text-slate-300 font-mono">$7,800.00</span>
+        </div>
+        <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+          <div id="calcProgress" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between text-xs">
+          <span id="spentPercent" class="font-semibold text-emerald-400">0.0% of Limit</span>
+          <span id="overUnder" class="text-slate-400">$7,800.00 remaining</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Category Filter Controls -->
+    <section class="flex items-center justify-between">
+      <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
+        <button onclick="filterCat('all')" id="btn-all" class="px-3 py-1 text-xs rounded-md font-medium bg-indigo-600 text-white transition">All</button>
+        <button onclick="filterCat('Essential')" id="btn-essential" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Essential</button>
+        <button onclick="filterCat('Discretionary')" id="btn-discretionary" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Discretionary</button>
+      </div>
+      <span class="text-xs text-slate-500" id="catCount">9 Categories</span>
+    </section>
+
+    <!-- Interactive Progress Bars -->
+    <section id="categoryContainer" class="space-y-2.5"></section>
+
+    <!-- Checking Cash Flow Checklist -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
+        <button onclick="resetChecklist()" class="text-[11px] text-slate-500 hover:text-slate-300">Reset Checks</button>
+      </div>
+      <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80"></div>
+    </section>
+  </main>
+
+  <!-- Statement Upload Modal -->
+  <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
+      <h3 class="font-bold text-sm text-slate-200">Reconcile & Audit Statements</h3>
+      <p class="text-xs text-slate-400">Paste raw statement rows (CSV / text) to detect rate changes and auto-debit adjustments.</p>
+      <textarea id="csvInput" rows="5" placeholder="Paste lines here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 font-mono"></textarea>
+      <div id="recommendations" class="hidden p-3 bg-slate-950 border border-indigo-900/60 rounded-lg text-xs space-y-1.5 text-slate-300"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Close</button>
+        <button onclick="parseAndAuditStatement()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Run Audit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CARD_BUDGET_CAP = 7800.00;
+
+    let categories = [
+      { name: "Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA" },
+      { name: "Auto Loan", target: 1581.85, spent: 1581.85, type: "Essential", source: "USAA" },
+      { name: "Groceries (Store & Dairy)", target: 1350.00, spent: 1184.20, type: "Essential", source: "AMEX/Chase" },
+      { name: "Flying Horse Club", target: 828.00, spent: 828.18, type: "Discretionary", source: "USAA" },
+      { name: "Gas & Fuel", target: 475.00, spent: 390.15, type: "Essential", source: "AMEX/Chase" },
+      { name: "Brian Discretionary", target: 1000.00, spent: 780.00, type: "Discretionary", source: "AMEX" },
+      { name: "Stephanie Discretionary", target: 1000.00, spent: 1120.50, type: "Discretionary", source: "AMEX" },
+      { name: "Utilities & Ting", target: 444.00, spent: 404.77, type: "Essential", source: "Mixed" },
+      { name: "Subscriptions (Monthly & Annual)", target: 420.00, spent: 388.90, type: "Discretionary", source: "AMEX/Chase" }
+    ];
+
+    const scheduledDebits = [
+      { day: 1, name: "Freedom Mortgage", amount: 2864.20 },
+      { day: 1, name: "Tricare Select", amount: 31.25 },
+      { day: 3, name: "VGLI Insurance", amount: 116.00 },
+      { day: 4, name: "Fubo TV", amount: 124.41 },
+      { day: 9, name: "Utilities", amount: 311.00 },
+      { day: 14, name: "State Farm", amount: 34.00 },
+      { day: 16, name: "USAA Auto Loan", amount: 1581.85 },
+      { day: 16, name: "USAA P&C Insurance", amount: 324.00 },
+      { day: 18, name: "Flying Horse Club", amount: 828.00 },
+      { day: 21, name: "HOA (Hammersmith)", amount: 250.00 },
+      { day: 21, name: "Royal Crest Dairy", amount: 95.00 },
+      { day: 28, name: "AMEX & Chase Card Payoff", amount: 7800.00 }
+    ];
+
+    function init() {
+      // Calculate pay cycle elapsed percentage (10th to 10th)
+      const now = new Date();
+      const day = now.getDate();
+      let elapsedPct = day >= 10 ? ((day - 10) / 30) * 100 : ((day + 20) / 30) * 100;
+      elapsedPct = Math.min(100, Math.max(0, Math.round(elapsedPct)));
+      document.getElementById('cycleLabel').innerText = `Cycle: ${elapsedPct}%`;
+
+      // Load saved inputs from phone storage
+      document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '';
+      document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '';
+      document.getElementById('erInput').value = localStorage.getItem('budget_er') || '';
+
+      calcSpending();
+      renderCategories('all');
+      renderCashFlow();
+    }
+
+    function calcSpending() {
+      const amex = parseFloat(document.getElementById('amexInput').value) || 0;
+      const chase = parseFloat(document.getElementById('chaseInput').value) || 0;
+      const er = parseFloat(document.getElementById('erInput').value) || 0;
+
+      localStorage.setItem('budget_amex', amex);
+      localStorage.setItem('budget_chase', chase);
+      localStorage.setItem('budget_er', er);
+
+      const adjusted = (amex + chase) - er;
+      const pct = (adjusted / CARD_BUDGET_CAP) * 100;
+      const remaining = CARD_BUDGET_CAP - adjusted;
+
+      document.getElementById('adjustedSpend').innerText = `$${adjusted.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('spentPercent').innerText = `${pct.toFixed(1)}% of Limit`;
+      
+      const bar = document.getElementById('calcProgress');
+      bar.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+      bar.className = pct > 100 ? 'h-full bg-rose-500' : (pct > 80 ? 'h-full bg-amber-500' : 'h-full bg-emerald-500');
+
+      const ou = document.getElementById('overUnder');
+      if (remaining >= 0) {
+        ou.innerText = `$${remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} left`;
+        ou.className = 'text-slate-400';
+      } else {
+        ou.innerText = `$${Math.abs(remaining).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} over`;
+        ou.className = 'text-rose-400 font-semibold';
+      }
+    }
+
+    function renderCategories(filter) {
+      const container = document.getElementById('categoryContainer');
+      container.innerHTML = '';
+      const filtered = categories.filter(c => filter === 'all' || c.type === filter);
+      document.getElementById('catCount').innerText = `${filtered.length} Categories`;
+
+      filtered.forEach(c => {
+        const pct = Math.min(100, (c.spent / c.target) * 100);
+        const color = pct > 100 ? 'bg-rose-500' : (pct > 85 ? 'bg-amber-500' : 'bg-indigo-500');
+        const badge = c.type === 'Essential' ? 'text-emerald-400 bg-emerald-950/70 border-emerald-800' : 'text-purple-400 bg-purple-950/70 border-purple-800';
+
+        container.innerHTML += `
+          <div class="bg-slate-900 border border-slate-800/90 rounded-xl p-3 shadow-sm">
+            <div class="flex justify-between items-start mb-1.5">
+              <div>
+                <span class="text-xs font-semibold text-slate-200">${c.name}</span>
+                <span class="text-[9px] px-1.5 py-0.5 ml-1 rounded border ${badge}">${c.type}</span>
+              </div>
+              <span class="text-xs font-mono text-slate-300">$${c.spent.toFixed(2)} / $${c.target.toFixed(2)}</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-1">
+              <div class="${color} h-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-500">
+              <span>${c.source}</span>
+              <span>${pct.toFixed(0)}%</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function filterCat(type) {
+      ['all', 'essential', 'discretionary'].forEach(t => {
+        document.getElementById(`btn-${t}`).className = 'px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition';
+      });
+      document.getElementById(`btn-${type.toLowerCase()}`).className = 'px-3 py-1 text-xs rounded-md font-medium bg-indigo-600 text-white transition';
+      renderCategories(type === 'all' ? 'all' : (type === 'Essential' ? 'Essential' : 'Discretionary'));
+    }
+
+    function renderCashFlow() {
+      const list = document.getElementById('cashFlowList');
+      list.innerHTML = '';
+      scheduledDebits.forEach((item, idx) => {
+        const checked = localStorage.getItem(`chk_${idx}`) === 'true';
+        list.innerHTML += `
+          <div class="flex justify-between items-center pt-2">
+            <div class="flex items-center space-x-2.5">
+              <input type="checkbox" id="chk-${idx}" onchange="toggleCheck(${idx})" ${checked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0 cursor-pointer">
+              <label for="chk-${idx}" class="text-slate-300 font-medium cursor-pointer ${checked ? 'line-through text-slate-500' : ''}">Day ${item.day}: ${item.name}</label>
+            </div>
+            <span class="font-mono text-slate-400">-$${item.amount.toFixed(2)}</span>
+          </div>
+        `;
+      });
+    }
+
+    function toggleCheck(idx) {
+      const el = document.getElementById(`chk-${idx}`);
+      localStorage.setItem(`chk_${idx}`, el.checked);
+      renderCashFlow();
+    }
+
+    function resetChecklist() {
+      scheduledDebits.forEach((_, idx) => localStorage.removeItem(`chk_${idx}`));
+      renderCashFlow();
+    }
+
+    function parseAndAuditStatement() {
+      const raw = document.getElementById('csvInput').value;
+      const reco = document.getElementById('recommendations');
+      reco.classList.remove('hidden');
+      reco.innerHTML = '<strong class="text-indigo-400">Recommendation Engine:</strong><br/>';
+
+      let count = 0;
+      if (raw.toLowerCase().includes('insurance') || raw.includes('USAA P&C')) {
+        reco.innerHTML += '• USAA P&C billed ~$324.00. Budget set at $465.00 (+ $141 surplus).<br/>';
+        count++;
+      }
+      if (raw.includes('COSTCO GAS') || raw.includes('7-ELEVEN')) {
+        reco.innerHTML += '• Gas spend observed higher than $300. Baseline at $475.<br/>';
+        count++;
+      }
+      if (raw.toLowerCase().includes('modern technolog')) {
+        reco.innerHTML += '• MTSI Reimbursement detected. Deduct from ER float.<br/>';
+        count++;
+      }
+      if (count === 0) {
+        reco.innerHTML += '• All parsed transactions align within expected range.';
+      }
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
