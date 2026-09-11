@@ -20,10 +20,10 @@
     </div>
     <div class="flex items-center gap-2">
       <button onclick="resetToStatementData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
-        Reload Statements
+        Reload Data
       </button>
-      <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow">
-        Audit Statement
+      <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow flex items-center gap-1">
+        <span>+ Upload CSV</span>
       </button>
     </div>
   </header>
@@ -58,15 +58,15 @@
           <span id="adjustedSpend" class="font-bold text-slate-200 font-mono">$0.00</span>
         </div>
         <div class="flex justify-between text-xs">
-          <span class="text-slate-400">Card Target Limit (<span id="modeLabel">Plan</span>):</span>
-          <span id="targetCardLimit" class="text-slate-300 font-mono">$6,400.00 / mo</span>
+          <span class="text-slate-400">Card Target Limit (<span id="modeLabel">Reality</span>):</span>
+          <span id="targetCardLimit" class="text-slate-300 font-mono">$7,800.00 / mo</span>
         </div>
         <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
           <div id="calcProgress" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
         </div>
         <div class="flex justify-between text-xs">
           <span id="spentPercent" class="font-semibold text-emerald-400">0.0% of Limit</span>
-          <span id="overUnder" class="text-slate-400 font-mono">$6,400.00 remaining</span>
+          <span id="overUnder" class="text-slate-400 font-mono">$7,800.00 remaining</span>
         </div>
       </div>
     </section>
@@ -75,11 +75,11 @@
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md flex items-center justify-between">
       <div>
         <span class="text-xs font-semibold text-slate-200 block">Target Architecture</span>
-        <span class="text-[10px] text-slate-400" id="modeSubtext">Showing 2026 Planned Budget Numbers</span>
+        <span class="text-[10px] text-slate-400" id="modeSubtext">Showing Statement Reality Tuned Numbers</span>
       </div>
       <div class="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800">
-        <button onclick="setBudgetMode('plan')" id="btn-mode-plan" class="px-2.5 py-1 text-xs rounded-md font-semibold bg-emerald-600 text-white transition">Plan Baseline</button>
-        <button onclick="setBudgetMode('reality')" id="btn-mode-reality" class="px-2.5 py-1 text-xs rounded-md font-semibold text-slate-400 hover:text-white transition">Statement Reality</button>
+        <button onclick="setBudgetMode('plan')" id="btn-mode-plan" class="px-2.5 py-1 text-xs rounded-md font-semibold text-slate-400 hover:text-white transition">Plan Baseline</button>
+        <button onclick="setBudgetMode('reality')" id="btn-mode-reality" class="px-2.5 py-1 text-xs rounded-md font-semibold bg-indigo-600 text-white transition">Statement Reality</button>
       </div>
     </section>
 
@@ -125,32 +125,48 @@
     </section>
   </main>
 
-  <!-- Statement Upload Modal -->
+  <!-- Statement CSV Upload Modal -->
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
-      <h3 class="font-bold text-sm text-slate-200">Reconcile & Audit Statements</h3>
-      <p class="text-xs text-slate-400">Paste statement lines (from Checking, AMEX, or Chase) to audit against targets.</p>
-      <textarea id="csvInput" rows="6" placeholder="Paste statement rows here..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 font-mono"></textarea>
-      <div id="recommendations" class="hidden p-3 bg-slate-950 border border-indigo-900/60 rounded-lg text-xs space-y-1.5 text-slate-300 max-h-48 overflow-y-auto"></div>
+      <div class="flex justify-between items-center">
+        <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
+        <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
+      </div>
+      <p class="text-xs text-slate-400">Select a CSV statement exported from AMEX, Chase, or USAA. The app categorizes transactions locally on your phone.</p>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-slate-300 font-medium mb-1.5">Choose Statement File (.csv)</label>
+          <input type="file" id="statementFileInput" accept=".csv,text/csv,text/plain" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-slate-800 file:text-indigo-400 hover:file:bg-slate-700 cursor-pointer bg-slate-950 p-1 rounded-lg border border-slate-800" />
+        </div>
+
+        <div class="flex items-center space-x-2 pt-1">
+          <input type="checkbox" id="overwriteSpendChk" class="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0">
+          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Overwrite current category spend (uncheck to add to current)</label>
+        </div>
+      </div>
+
+      <div id="ingestFeedback" class="hidden p-3 bg-slate-950 border border-indigo-900/60 rounded-lg text-xs space-y-1.5 text-slate-300 max-h-48 overflow-y-auto"></div>
+
       <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Close</button>
-        <button onclick="parseAndAuditStatement()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Run Audit</button>
+        <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
+        <button onclick="processSelectedCSV()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Process Statement</button>
       </div>
     </div>
   </div>
 
   <script>
-    // 1. Plan Baseline Dataset (Exact Targets + Actual Spend Ingested from Statements)
+    // 1. Plan Baseline Dataset
     const planCategories = [
-      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "KS $149.18 + TJs $178.07" },
-      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining $123 + Iceland dining $576" },
-      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven $57, KS Fuel $107, Chase Gas $152" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro $176, Target $184, Mododoc $35, Kadlin" },
-      { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "SP My Medic $139.76" },
-      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets Vintage $11.58" },
-      { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace, Supplies" },
+      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joe's" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee, Takeout" },
+      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, King Soopers Fuel, Costco" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Target, Alo" },
+      { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
+      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets, Movies, Incidentals" },
+      { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Supplies" },
       { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Wellness" },
-      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103, HBO $19" },
+      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
       { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
 
       // Checking Outflows
@@ -167,23 +183,23 @@
       { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
-    // 2. Statement Reality Dataset (Tuned Targets + Actual Spend Ingested from Statements)
+    // 2. Statement Reality Dataset
     const realityCategories = [
-      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "KS $149.18 + TJs $178.07" },
-      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining $123 + Iceland dining $576" },
-      { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven $57, KS Fuel $107, Chase Gas $152" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro $176, Target $184, Mododoc $35, Kadlin" },
-      { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "SP My Medic $139.76" },
-      { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash $24.00 + E-470 Tolls $30.00" },
+      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150)" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland dining" },
+      { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, KS Fuel, Costco Gas" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Alo Yoga, Target" },
+      { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Outdoor, Durston, Fly Fishing" },
+      { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash ($72), Sport Clips ($90), E-470" },
       { id: "pet_care", name: "Pet Grooming & Kennel", target: 180.00, spent: 143.75, type: "Essential", source: "AMEX/Chase", note: "Erin Drew grooming $143.75" },
-      { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 47.31, type: "Discretionary", source: "AMEX", note: "Posted 9/7" },
+      { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 47.31, type: "Discretionary", source: "AMEX", note: "2-3 visits per month" },
       { id: "home", name: "Home Maintenance", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Hardware" },
-      { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Clinics" },
-      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103, HBO $19" },
-      { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Chase $95 Fee" },
-      { id: "ent_misc", name: "Entertainment & Incidentals", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets Vintage $11.58" },
+      { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays, Penrad, Eye clinics" },
+      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
+      { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Chase $95 Fee, Costco, Prime" },
+      { id: "ent_misc", name: "Entertainment & Incidentals", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Tickets, Movies, Local events" },
 
-      // Checking Outflows (Reality Tuned)
+      // Checking Outflows
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
       { id: "flying_horse", name: "Flying Horse Club", target: 828.00, spent: 0.00, type: "Discretionary", source: "USAA", note: "Scheduled Day 18" },
@@ -201,7 +217,6 @@
     let currentFilter = 'all';
     let categories = [];
 
-    // Base scheduled debits
     const baseDebits = [
       { day: 1, name: "Freedom Mortgage", amountPlan: 2864.20, amountReality: 2864.20 },
       { day: 1, name: "Tricare Select", amountPlan: 31.25, amountReality: 31.25 },
@@ -255,7 +270,7 @@
       const cardCap = isPlan ? 6400.00 : 7800.00;
       document.getElementById('targetCardLimit').innerText = `$${cardCap.toLocaleString('en-US', {minimumFractionDigits: 2})} / mo`;
 
-      // Load categories with preserved local edits if present
+      // Load category targets
       const baseCats = isPlan ? planCategories : realityCategories;
       const savedSpendMap = JSON.parse(localStorage.getItem('budget_spend_map') || '{}');
 
@@ -398,40 +413,152 @@
       renderCashFlow();
     }
 
-    function parseAndAuditStatement() {
-      const raw = document.getElementById('csvInput').value;
-      const reco = document.getElementById('recommendations');
-      reco.classList.remove('hidden');
-      reco.innerHTML = '<strong class="text-indigo-400">Audit & Recommendation Engine:</strong><br/>';
+    // --- CSV Ingestion & Parsing Engine ---
+    function processSelectedCSV() {
+      const fileInput = document.getElementById('statementFileInput');
+      const feedback = document.getElementById('ingestFeedback');
+      const overwrite = document.getElementById('overwriteSpendChk').checked;
 
-      let count = 0;
-      if (raw.toLowerCase().includes('insurance') || raw.includes('USAA P&C')) {
-        reco.innerHTML += '• USAA P&C billed ~$324.00 vs. budget $465.00 (+ $141 monthly surplus).<br/>';
-        count++;
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Please choose a CSV file first.");
+        return;
       }
-      if (raw.includes('COSTCO GAS') || raw.includes('7-ELEVEN') || raw.includes('KING SOOPERS FUEL')) {
-        reco.innerHTML += '• Gas spend averages ~$475/mo across AMEX/Chase. Consider switching to Reality mode ($475).<br/>';
-        count++;
-      }
-      if (raw.toLowerCase().includes('modern technolog')) {
-        reco.innerHTML += '• MTSI EFT Reimbursement found. Add this amount to Work ER to offset card burn.<br/>';
-        count++;
-      }
-      if (raw.includes('CLUB CAR WASH')) {
-        reco.innerHTML += '• Club Car Wash debited $24.00 repeatedly (~$72/mo unbudgeted in Plan mode).<br/>';
-        count++;
-      }
-      if (raw.includes('ANTHROPOLOGIE') || raw.includes('FREE PEOPLE') || raw.includes('ALO')) {
-        reco.innerHTML += '• Stephanie boutique spending active. Reconcile returns to verify net monthly envelope.<br/>';
-        count++;
-      }
-      if (count === 0) {
-        reco.innerHTML += '• Parsed transactions fall within typical baseline boundaries.';
-      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
+
+        if (lines.length < 2) {
+          alert("Selected CSV is empty or has no transaction rows.");
+          return;
+        }
+
+        // Initialize category spend accumulator
+        let incomingSpend = {};
+        if (!overwrite) {
+          categories.forEach(c => incomingSpend[c.id] = c.spent || 0);
+        } else {
+          categories.forEach(c => incomingSpend[c.id] = 0);
+        }
+
+        let parsedCount = 0;
+        let totalParsedSpend = 0;
+        let erReimbursements = 0;
+
+        // Detect CSV format based on header row
+        const header = lines[0].toLowerCase();
+        const isAmex = header.includes('card member') || header.includes('account #') || header.includes('description');
+        const isChase = header.includes('trans date') || header.includes('post date');
+
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i];
+          // Handle comma or pipe separated lines
+          const delim = row.includes('|') ? '|' : ',';
+          const cols = row.split(delim).map(c => c.replace(/^["']|["']$/g, '').trim());
+
+          if (cols.length < 3) continue;
+
+          let desc = "";
+          let amt = 0;
+
+          if (isChase && cols.length >= 6) {
+            desc = cols[2];
+            amt = parseFloat(cols[5]);
+            // On Chase statements, debits/sales are negative (-45.66)
+            if (amt < 0) amt = Math.abs(amt);
+            else if (amt > 0) amt = 0; // Skip payments / refunds
+          } else if (isAmex) {
+            desc = cols[1];
+            amt = parseFloat(cols[cols.length - 1]);
+            // On AMEX, positive is charge, negative is payment/refund
+            if (amt < 0) amt = 0; 
+          } else {
+            // General / USAA format
+            desc = cols[1];
+            amt = parseFloat(cols[2]);
+            if (amt < 0) amt = Math.abs(amt);
+          }
+
+          if (isNaN(amt) || amt <= 0) continue;
+          const uDesc = desc.toUpperCase();
+
+          // Skip credit card payoff debits from inflating categories
+          if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('AUTOMATIC PAYMENT')) {
+            continue;
+          }
+
+          // Rule-based classification
+          let matchedId = null;
+
+          if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK')) {
+            matchedId = 'gas';
+          } else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
+            matchedId = 'groceries';
+          } else if (uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA')) {
+            matchedId = 'stephanie';
+          } else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE')) {
+            matchedId = 'brian';
+          } else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH')) {
+            matchedId = 'grooming_auto';
+          } else if (uDesc.includes('ERIN DREW') || uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
+            matchedId = 'pet_care';
+          } else if (uDesc.includes('INTERQUEST LIQUOR')) {
+            matchedId = 'liquor';
+          } else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
+            matchedId = 'monthly_subs';
+          } else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
+            matchedId = 'home';
+          } else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('BREWING')) {
+            matchedId = 'food_drink';
+          } else if (uDesc.includes('HAMPTON INN') || uDesc.includes('HILTON') || uDesc.includes('HOMEWOOD') || uDesc.includes('UNITED AIRLINES') || uDesc.includes('HERTZ') || uDesc.includes('AVIS')) {
+            erReimbursements += amt;
+            matchedId = 'ent_misc';
+          } else {
+            matchedId = 'ent_misc';
+          }
+
+          if (matchedId && incomingSpend[matchedId] !== undefined) {
+            incomingSpend[matchedId] += amt;
+            parsedCount++;
+            totalParsedSpend += amt;
+          }
+        }
+
+        // Save new spend map
+        localStorage.setItem('budget_spend_map', JSON.stringify(incomingSpend));
+
+        // Update category array
+        categories.forEach(c => {
+          if (incomingSpend[c.id] !== undefined) {
+            c.spent = incomingSpend[c.id];
+          }
+        });
+
+        // Display results in modal
+        feedback.classList.remove('hidden');
+        feedback.innerHTML = `
+          <strong class="text-emerald-400 font-semibold">Ingestion Successful!</strong><br/>
+          • Processed: <span class="font-mono text-slate-200">${parsedCount} transactions</span><br/>
+          • Total Ingested Spend: <span class="font-mono text-slate-200">$${totalParsedSpend.toFixed(2)}</span><br/>
+          • Potential Travel/Work Expense: <span class="font-mono text-amber-300">$${erReimbursements.toFixed(2)}</span><br/>
+          • Mode: <span class="text-indigo-400 font-semibold">${overwrite ? 'Overwrote' : 'Appended to'} category totals</span>
+        `;
+
+        renderCategories(currentFilter);
+        calcSpending();
+      };
+
+      reader.readAsText(file);
     }
 
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function closeModal(id) { 
+      document.getElementById(id).classList.add('hidden'); 
+      document.getElementById('ingestFeedback').classList.add('hidden');
+    }
 
     window.onload = init;
   </script>
