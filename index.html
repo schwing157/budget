@@ -71,6 +71,40 @@
       </div>
     </section>
 
+    <!-- Emergency Fund & Job-Loss Runway Card -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Emergency Fund & Runway</h2>
+        <span id="runwayPill" class="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80">-- Months Runway</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">Savings Balance ($)</label>
+          <input type="number" step="100" id="efundInput" oninput="calcRunway()" placeholder="28000" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono text-emerald-400 font-bold" />
+        </div>
+        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-right">
+          <span class="text-[10px] text-slate-500 block">Monthly Shortfall (No Job)</span>
+          <span id="shortfallDisplay" class="text-xs font-mono font-semibold text-rose-400">-$6,320.38/mo</span>
+        </div>
+      </div>
+
+      <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+        <div class="flex justify-between">
+          <span>Guaranteed Pension + VA Income:</span>
+          <span class="font-mono text-slate-200">+$5,601.23 / mo</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Baseline Essential Expenses:</span>
+          <span class="font-mono text-slate-200">-$11,921.61 / mo</span>
+        </div>
+        <div class="flex justify-between border-t border-slate-800 pt-1 text-slate-300 font-medium">
+          <span>Net Needed from Savings:</span>
+          <span class="font-mono text-amber-400" id="netGapDisplay">$6,320.38 / mo</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Budget Architecture Switcher -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md flex items-center justify-between">
       <div>
@@ -106,23 +140,6 @@
       </div>
       <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80"></div>
     </section>
-
-    <!-- Emergency & Savings Overview -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-2 text-xs">
-      <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Emergency & Savings Overview</h2>
-      <div class="grid grid-cols-2 gap-2 pt-1 font-mono">
-        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block font-sans">Current Emergency Fund</span>
-          <span class="text-emerald-400 font-bold text-sm">$28,000.00</span>
-          <span class="text-[10px] text-slate-400 block font-sans">4.43 mo runway (Target $40k)</span>
-        </div>
-        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-          <span class="text-slate-500 text-[10px] block font-sans">Monthly Savings Rate</span>
-          <span class="text-indigo-400 font-bold text-sm">$5,000.00/mo</span>
-          <span class="text-[10px] text-slate-400 block font-sans">$3k Long / $2k Short</span>
-        </div>
-      </div>
-    </section>
   </main>
 
   <!-- Step 1: Statement CSV Upload Modal with Month Selector -->
@@ -132,10 +149,9 @@
         <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select a CSV statement. Choose the target month to filter out other months and keep your Work ER float accurate.</p>
+      <p class="text-xs text-slate-400">Select a CSV statement. Choose the target month to filter out other months and keep transaction drilldowns organized.</p>
 
       <div class="space-y-3">
-        <!-- Target Month & Year Selector -->
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
           <div>
             <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Import Month</label>
@@ -198,18 +214,40 @@
     </div>
   </div>
 
+  <!-- Step 3: Transaction Drill-Down Modal -->
+  <div id="drillDownModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-3 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <div>
+          <h3 id="drillTitle" class="font-bold text-sm text-slate-200">Category Transactions</h3>
+          <span id="drillSubtitle" class="text-[10px] text-slate-400">Month-to-Date Items</span>
+        </div>
+        <button onclick="closeModal('drillDownModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
+      </div>
+
+      <div id="drillTransactionsList" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
+
+      <div class="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
+        <span id="drillTotalCount" class="text-slate-500">0 transactions</span>
+        <span id="drillTotalSum" class="font-mono font-bold text-emerald-400">$0.00 Total</span>
+      </div>
+    </div>
+  </div>
+
   <script>
+    // 1. Plan Baseline Dataset with Giving Category Broken Out[cite: 2]
     const planCategories = [
       { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joe's" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee, Takeout" },
       { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, King Soopers Fuel, Costco" },
       { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Target, Alo" },
       { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
+      { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
+      { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, HBO Max $19, Apple" },
+      { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
       { id: "ent_misc", name: "Entertainment & Travel", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
       { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Supplies" },
       { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Wellness" },
-      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
-      { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
 
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
@@ -224,18 +262,20 @@
       { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
+    // 2. Statement Reality Dataset with Giving Category Broken Out[cite: 2]
     const realityCategories = [
       { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150)" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland dining" },
       { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, KS Fuel, Costco Gas" },
       { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Alo Yoga, Target" },
       { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Outdoor, Durston, Fly Fishing" },
+      { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
       { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash ($72), Sport Clips ($90), E-470" },
       { id: "pet_care", name: "Pet Grooming & Kennel", target: 180.00, spent: 143.75, type: "Essential", source: "AMEX/Chase", note: "Erin Drew grooming $143.75" },
       { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 47.31, type: "Discretionary", source: "AMEX", note: "2-3 visits per month" },
       { id: "home", name: "Home Maintenance", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Hardware" },
       { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays, Penrad, Eye clinics" },
-      { id: "monthly_subs", name: "Monthly Subscriptions & Giving", target: 859.01, spent: 462.47, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, Rescue $103, Tebow $103" },
+      { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, HBO Max $19, Apple" },
       { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Chase $95 Fee, Costco, Prime" },
       { id: "ent_misc", name: "Entertainment & Travel", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
 
@@ -273,6 +313,7 @@
 
     let stagedSpendMap = {};
     let stagedTravelList = [];
+    let stagedCategoryTransactions = {};
 
     function init() {
       const now = new Date();
@@ -282,15 +323,41 @@
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       document.getElementById('cycleLabel').innerText = `${monthNames[now.getMonth()]} Elapsed: ${elapsedPct}% (Day ${day}/${totalDays})`;
 
-      // Set dropdowns to active month and year
       document.getElementById('importMonthSelect').value = (now.getMonth() + 1).toString();
       document.getElementById('importYearSelect').value = now.getFullYear().toString();
 
       document.getElementById('amexInput').value = localStorage.getItem('budget_amex') || '6822.61';
       document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '3539.53';
       document.getElementById('erInput').value = localStorage.getItem('budget_er') || '2126.96';
+      document.getElementById('efundInput').value = localStorage.getItem('budget_efund') || '28000';
 
+      calcRunway();
       setBudgetMode(currentMode, false);
+    }
+
+    // Interactive Emergency Fund Runway Calculator[cite: 2]
+    function calcRunway() {
+      const efund = parseFloat(document.getElementById('efundInput').value) || 0;
+      localStorage.setItem('budget_efund', efund);
+
+      const totalEssentials = 11921.61; // Total essential burn from 2026 Budget[cite: 2]
+      const pensionVA = 5601.23;       // Pension ($4359.33) + VA Disability ($1241.90)[cite: 2]
+      const netShortfall = totalEssentials - pensionVA; // $6,320.38 / month needed[cite: 2]
+
+      const runwayMonths = netShortfall > 0 ? (efund / netShortfall) : 999;
+
+      document.getElementById('shortfallDisplay').innerText = `-$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}/mo`;
+      document.getElementById('netGapDisplay').innerText = `$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / mo`;
+      
+      const pill = document.getElementById('runwayPill');
+      pill.innerText = `${runwayMonths.toFixed(2)} Months Runway`;
+      if (runwayMonths >= 6) {
+        pill.className = "text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80";
+      } else if (runwayMonths >= 3) {
+        pill.className = "text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80";
+      } else {
+        pill.className = "text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/80";
+      }
     }
 
     function setBudgetMode(mode, save = true) {
@@ -373,14 +440,14 @@
           : 'text-purple-400 bg-purple-950/70 border-purple-800';
 
         container.innerHTML += `
-          <div class="bg-slate-900 border border-slate-800/90 rounded-xl p-3 shadow-sm">
+          <div onclick="drillCategory('${c.id}')" class="bg-slate-900 border border-slate-800/90 rounded-xl p-3 shadow-sm active:bg-slate-850 cursor-pointer hover:border-slate-700 transition">
             <div class="flex justify-between items-start mb-1.5">
               <div>
                 <span class="text-xs font-semibold text-slate-200">${c.name}</span>
                 <span class="text-[9px] px-1.5 py-0.5 ml-1 rounded border ${badge}">${c.type}</span>
                 <span class="text-[10px] text-slate-400 block">${c.note || ''}</span>
               </div>
-              <div class="flex items-center space-x-1 text-xs font-mono">
+              <div class="flex items-center space-x-1 text-xs font-mono" onclick="event.stopPropagation()">
                 <span class="text-slate-400">$</span>
                 <input type="number" step="0.01" value="${c.spent.toFixed(2)}" onchange="updateCatSpend('${c.id}', this.value)" class="w-16 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-slate-200 focus:outline-none focus:border-indigo-500" />
                 <span class="text-slate-500">/ $${c.target.toFixed(0)}</span>
@@ -390,7 +457,7 @@
               <div class="${color} h-full transition-all duration-300" style="width: ${pct}%"></div>
             </div>
             <div class="flex justify-between text-[11px] text-slate-500 font-sans">
-              <span>Account: ${c.source}</span>
+              <span>Account: ${c.source} · <span class="text-indigo-400 underline">Tap to view</span></span>
               <span>${pct.toFixed(0)}%</span>
             </div>
           </div>
@@ -409,9 +476,53 @@
       }
     }
 
+    // Drill down into transactions for a tapped category
+    function drillCategory(catId) {
+      const cat = categories.find(c => c.id === catId);
+      if (!cat) return;
+
+      document.getElementById('drillTitle').innerText = cat.name;
+      document.getElementById('drillSubtitle').innerText = `${cat.type} · ${cat.source}`;
+
+      const allTxMap = JSON.parse(localStorage.getItem('category_transactions_map') || '{}');
+      const txs = allTxMap[catId] || [];
+
+      const list = document.getElementById('drillTransactionsList');
+      list.innerHTML = '';
+
+      if (txs.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-6 text-slate-500 text-xs">
+            No itemized transactions logged for this category.<br/>Upload a CSV statement to populate drilldowns.
+          </div>
+        `;
+        document.getElementById('drillTotalCount').innerText = "0 transactions";
+        document.getElementById('drillTotalSum').innerText = `$${cat.spent.toFixed(2)} Logged`;
+      } else {
+        let sum = 0;
+        txs.forEach(t => {
+          sum += t.amount;
+          list.innerHTML += `
+            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 text-xs">
+              <div>
+                <span class="font-medium text-slate-200 block leading-tight">${t.desc}</span>
+                <span class="text-[10px] text-slate-500">${t.date} ${t.member ? '· ' + t.member : ''}</span>
+              </div>
+              <span class="font-mono font-bold text-slate-200 ml-2">-$${t.amount.toFixed(2)}</span>
+            </div>
+          `;
+        });
+        document.getElementById('drillTotalCount').innerText = `${txs.length} transactions`;
+        document.getElementById('drillTotalSum').innerText = `$${sum.toFixed(2)} Total`;
+      }
+
+      openModal('drillDownModal');
+    }
+
     function resetToStatementData() {
       if (confirm("Reload actual spending numbers calculated from statements?")) {
         localStorage.removeItem('budget_spend_map');
+        localStorage.removeItem('category_transactions_map');
         setBudgetMode(currentMode, false);
       }
     }
@@ -456,35 +567,29 @@
       renderCashFlow();
     }
 
-    // Helper: Parse Date across AMEX (M/D/YY), Chase (MM/DD/YYYY), or USAA (YYYY-MM-DD)
     function parseTransactionDate(raw) {
       if (!raw) return null;
       raw = raw.trim();
-
-      // USAA ISO format: YYYY-MM-DD
       if (raw.includes('-')) {
         const parts = raw.split('-');
         if (parts.length >= 3) {
           return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10), day: parseInt(parts[2], 10) };
         }
       }
-
-      // AMEX / Chase slash format: M/D/YY or MM/DD/YYYY
       if (raw.includes('/')) {
         const parts = raw.split('/');
         if (parts.length >= 3) {
           let m = parseInt(parts[0], 10);
           let d = parseInt(parts[1], 10);
           let y = parseInt(parts[2], 10);
-          if (y < 100) y += 2000; // Handle 2-digit year (e.g. 26 -> 2026)
+          if (y < 100) y += 2000;
           return { year: y, month: m, day: d };
         }
       }
-
       return null;
     }
 
-    // --- CSV PARSER WITH MONTH FILTERING ---
+    // CSV Ingestion with Transaction Drilldown Retention
     function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -509,10 +614,18 @@
         }
 
         stagedSpendMap = {};
+        stagedCategoryTransactions = {};
+
         if (!overwrite) {
-          categories.forEach(c => stagedSpendMap[c.id] = c.spent || 0);
+          categories.forEach(c => {
+            stagedSpendMap[c.id] = c.spent || 0;
+            stagedCategoryTransactions[c.id] = JSON.parse(localStorage.getItem('category_transactions_map') || '{}')[c.id] || [];
+          });
         } else {
-          categories.forEach(c => stagedSpendMap[c.id] = 0);
+          categories.forEach(c => {
+            stagedSpendMap[c.id] = 0;
+            stagedCategoryTransactions[c.id] = [];
+          });
         }
 
         stagedTravelList = [];
@@ -557,7 +670,6 @@
 
           if (isNaN(amt) || amt <= 0) continue;
 
-          // Check if date falls in target month and year
           const parsedD = parseTransactionDate(rawDate);
           if (parsedD) {
             if (parsedD.month !== targetMonth || parsedD.year !== targetYear) {
@@ -569,10 +681,8 @@
           processedForMonth++;
           const uDesc = desc.toUpperCase();
 
-          // Skip credit card payoff debits
           if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU')) continue;
 
-          // Check if travel charge
           const isTravel = travelKeywords.some(k => uDesc.includes(k));
 
           if (isTravel) {
@@ -589,9 +699,11 @@
             continue;
           }
 
-          // Category classification
+          // Rule-based classification
           let cat = 'ent_misc';
-          if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK')) {
+          if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
+            cat = 'giving';
+          } else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK')) {
             cat = 'gas';
           } else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
             cat = 'groceries';
@@ -605,7 +717,7 @@
             cat = 'pet_care';
           } else if (uDesc.includes('INTERQUEST LIQUOR')) {
             cat = 'liquor';
-          } else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
+          } else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
             cat = 'monthly_subs';
           } else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
             cat = 'home';
@@ -615,6 +727,8 @@
 
           if (stagedSpendMap[cat] !== undefined) {
             stagedSpendMap[cat] += amt;
+            if (!stagedCategoryTransactions[cat]) stagedCategoryTransactions[cat] = [];
+            stagedCategoryTransactions[cat].push({ date: rawDate, desc: desc, amount: amt, member: member });
           }
         }
 
@@ -630,7 +744,7 @@
           openModal('travelAssignModal');
         } else {
           commitStagedData();
-          alert(`Success! Ingested ${processedForMonth} transactions for Month ${targetMonth}/${targetYear}. (${skippedDifferentMonth} transactions skipped from other months).`);
+          alert(`Success! Ingested ${processedForMonth} transactions for Month ${targetMonth}/${targetYear}.`);
         }
       };
 
@@ -681,6 +795,8 @@
           addedWorkER += t.amount;
         } else {
           addedPersonalTravel += t.amount;
+          if (!stagedCategoryTransactions['ent_misc']) stagedCategoryTransactions['ent_misc'] = [];
+          stagedCategoryTransactions['ent_misc'].push({ date: t.date, desc: t.desc, amount: t.amount, member: t.member });
         }
       });
 
@@ -688,7 +804,6 @@
         stagedSpendMap['ent_misc'] += addedPersonalTravel;
       }
 
-      // If overwriting, set ER to only this month's work travel; if appending, add to it
       const overwrite = document.getElementById('overwriteSpendChk').checked;
       const currentER = overwrite ? 0 : (parseFloat(document.getElementById('erInput').value) || 0);
       const newER = currentER + addedWorkER;
@@ -698,14 +813,17 @@
       commitStagedData();
       closeModal('travelAssignModal');
 
-      alert(`Month Import Complete!\n• Work ER Float for this month: $${newER.toFixed(2)}\n• Added to Personal Travel: +$${addedPersonalTravel.toFixed(2)}`);
+      alert(`Month Import Complete!\n• Work ER Float: $${newER.toFixed(2)}\n• Added to Personal Travel: +$${addedPersonalTravel.toFixed(2)}`);
     }
 
     function commitStagedData() {
       localStorage.setItem('budget_spend_map', JSON.stringify(stagedSpendMap));
+      localStorage.setItem('category_transactions_map', JSON.stringify(stagedCategoryTransactions));
+
       categories.forEach(c => {
         if (stagedSpendMap[c.id] !== undefined) c.spent = stagedSpendMap[c.id];
       });
+
       renderCategories(currentFilter);
       calcSpending();
     }
