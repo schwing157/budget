@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#10b981" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <!-- High-visibility vibrant icon for iOS and Android -->
   <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/firefly-iii.png" />
   <link rel="manifest" href="manifest.json" />
   <title>2026 Budget & Cash Flow Tracker</title>
@@ -198,7 +197,7 @@
         <h3 class="font-bold text-sm text-slate-200">Batch Ingest Statement CSVs</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select statement files together. You will confirm the travel expenses for each statement file sequentially.</p>
+      <p class="text-xs text-slate-400">Select statement files together. Checking deposits and transfers are automatically ignored.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -365,7 +364,6 @@
       { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00, isCard: true }
     ];
 
-    // Global Batch & Staging State
     let stagedSpendMap = {};
     let stagedCategoryTransactions = {};
     let batchFileQueue = [];
@@ -652,7 +650,7 @@
     }
 
     function resetToStatementData() {
-      if (confirm("Reload baseline statement numbers?")) {
+      if (confirm("Reload baseline statement numbers and reset any manual imports?")) {
         localStorage.removeItem('budget_spend_map');
         localStorage.removeItem('category_transactions_map');
         setBudgetMode(currentMode, false);
@@ -744,7 +742,6 @@
         });
       }
 
-      // Read files concurrently into array
       const readPromises = Array.from(fileInput.files).map(file => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -766,7 +763,7 @@
         closeModal('uploadModal');
 
         if (batchFileQueue.length === 0) {
-          alert(`No transactions found for Month ${targetMonth}/${targetYear} in the selected file(s).`);
+          alert(`No valid transactions found for Month ${targetMonth}/${targetYear} in the selected file(s).`);
           return;
         }
 
@@ -796,6 +793,9 @@
       if (amtIdx === -1) amtIdx = headerTokens.length - 1;
 
       const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
+      const isAmex = lines[0].toLowerCase().includes('card member') || lines[0].toLowerCase().includes('account #');
+      const isChecking = !isChase && !isAmex; // USAA checking
+
       const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR', 'AIRLINE'];
       const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
 
@@ -811,31 +811,58 @@
 
         let rawDate = cols[dateIdx];
         let desc = cols[descIdx];
-        let amt = parseFloat(cols[amtIdx]);
+        let rawAmt = parseFloat(cols[amtIdx]);
         let bankCategory = catIdx !== -1 ? (cols[catIdx] || "").toUpperCase() : "";
         let member = memberIdx !== -1 ? (cols[memberIdx] || "") : "";
 
+        if (isNaN(rawAmt)) continue;
+
+        let amt = 0;
+
+        // SIGN & ACCOUNT RULES:
         if (isChase) {
-          if (amt < 0) amt = Math.abs(amt);
-          else continue;
+          // On Chase credit card, charges are negative numbers. Positive numbers are payments/refunds.
+          if (rawAmt < 0) amt = Math.abs(rawAmt);
+          else continue; // skip payments
+        } else if (isAmex) {
+          // On AMEX credit card, charges are positive numbers. Negative numbers are payments/credits.
+          if (rawAmt > 0) amt = rawAmt;
+          else continue; // skip payments
         } else {
-          if (amt < 0) amt = Math.abs(amt);
-          else if (amt <= 0) continue;
+          // On USAA Checking: Negative numbers are outflows/debits. Positive numbers are DEPOSITS / INFLOWS!
+          // NEVER treat deposits (MTSI paycheck, pension, VA) as expenses!
+          if (rawAmt < 0) {
+            amt = Math.abs(rawAmt);
+          } else {
+            continue; // Skip all paycheck deposits, interest, and credit inflows
+          }
         }
 
-        if (isNaN(amt) || amt <= 0) continue;
+        if (amt <= 0) continue;
 
         const parsedD = parseTransactionDate(rawDate);
         if (parsedD) {
           if (parsedD.month !== targetMonth || parsedD.year !== targetYear) continue;
         }
 
-        processedCount++;
         const uDesc = desc.toUpperCase();
 
-        if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
+        // Skip internal transfers, payroll, and credit card payoffs
+        if (
+          uDesc.includes('MOBILE PAYMENT') || 
+          uDesc.includes('PAYMENT THANK YOU') || 
+          uDesc.includes('ACH PMT') || 
+          uDesc.includes('CREDIT CRD EPAY') ||
+          uDesc.includes('TRANSFER TO') || 
+          uDesc.includes('TRANSFER FROM') || 
+          uDesc.includes('USAA FUNDS TRANSFER') || 
+          uDesc.includes('PAYROLL') || 
+          uDesc.includes('DIRECT DEP')
+        ) {
           continue;
         }
+
+        processedCount++;
 
         // Travel Check
         const isTravel = travelKeywords.some(k => uDesc.includes(k));
@@ -949,7 +976,7 @@
       const fileData = batchFileQueue[index];
       currentFileTravelItems = fileData.travelItems;
 
-      // Merge this file's standard spending into the global accumulator
+      // Merge standard living expenses into the accumulator
       for (let cId in fileData.spendMap) {
         if (!stagedSpendMap[cId]) stagedSpendMap[cId] = 0;
         stagedSpendMap[cId] += fileData.spendMap[cId];
@@ -958,7 +985,7 @@
         stagedCategoryTransactions[cId] = stagedCategoryTransactions[cId].concat(fileData.txMap[cId]);
       }
 
-      // If this file has travel items, show modal for user review
+      // If travel transactions are present, prompt confirmation
       if (currentFileTravelItems.length > 0) {
         document.getElementById('fileQueueBadge').innerText = `File ${index + 1}: ${fileData.fileName}`;
         document.getElementById('fileQueueCounter').innerText = `${index + 1} / ${batchFileQueue.length}`;
