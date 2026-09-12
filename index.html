@@ -13,7 +13,15 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen pb-28 font-sans antialiased select-none">
 
-  <!-- Mobile App Header -->
+  <!-- In-App iOS Safe Notification Banner -->
+  <div id="toastNotification" class="fixed top-3 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 opacity-0 pointer-events-none w-11/12 max-w-sm">
+    <div id="toastContent" class="bg-slate-900 border border-emerald-500/80 rounded-xl px-4 py-3 shadow-2xl flex items-center justify-between text-xs">
+      <span id="toastMessage" class="font-medium text-slate-100">Notice</span>
+      <button onclick="hideToast()" class="text-slate-400 hover:text-slate-200 ml-2 text-sm">&times;</button>
+    </div>
+  </div>
+
+  <!-- Mobile Header -->
   <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-lg flex justify-between items-center">
     <div>
       <div class="flex items-center gap-2">
@@ -154,7 +162,6 @@
 
     <!-- SECTION 4: Architecture Switcher & Category Tracking (Violet / Slate Theme) -->
     <section class="space-y-3">
-      <!-- Target Switcher Header Card -->
       <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex items-center justify-between">
         <div>
           <span class="text-xs font-bold text-slate-100 block">Target Architecture</span>
@@ -166,7 +173,6 @@
         </div>
       </div>
 
-      <!-- Filters & Category Count -->
       <div class="flex items-center justify-between px-1">
         <div class="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800">
           <button onclick="filterCat('all')" id="btn-all" class="px-3 py-1 text-xs rounded-lg font-semibold bg-indigo-600 text-white transition">All</button>
@@ -176,7 +182,6 @@
         <span class="text-xs font-mono text-slate-400" id="catCount">-- Categories</span>
       </div>
 
-      <!-- Category Progress Cards Container -->
       <div id="categoryContainer" class="space-y-2.5"></div>
     </section>
 
@@ -195,7 +200,6 @@
         </button>
       </div>
 
-      <!-- Outstanding Checking Debits Remainder Callout -->
       <div class="bg-slate-950/90 border border-blue-900/40 rounded-xl p-3 flex justify-between items-center shadow-inner">
         <div>
           <span class="text-[10px] uppercase tracking-wider text-blue-300 font-bold block">Remaining Checking Debits</span>
@@ -212,10 +216,10 @@
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-        <h3 class="font-bold text-sm text-slate-100">Batch Ingest Statement CSVs</h3>
+        <h3 class="font-bold text-sm text-slate-100">Ingest Statement CSVs</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select statement files together. Checking deposits and internal transfers are automatically ignored.</p>
+      <p class="text-xs text-slate-400">Select one or multiple CSV statements (AMEX, Chase, USAA Checking). The app processes all files for the selected month.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -246,19 +250,24 @@
         </div>
 
         <div>
-          <label class="block text-[11px] text-slate-300 font-medium mb-1.5">Choose Files (.csv) - Multi-Select Supported</label>
+          <label class="block text-[11px] text-slate-300 font-medium mb-1.5">Choose Statement Files (.csv)</label>
           <input type="file" id="statementFileInput" multiple accept=".csv,text/csv,text/plain" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-slate-800 file:text-indigo-400 hover:file:bg-slate-700 cursor-pointer bg-slate-950 p-1 rounded-lg border border-slate-800" />
         </div>
 
         <div class="flex items-center space-x-2 pt-1">
           <input type="checkbox" id="overwriteSpendChk" checked class="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0">
-          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Reset month category spending before batch</label>
+          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Reset month category spending before import</label>
         </div>
+      </div>
+
+      <div id="uploadStatusLine" class="hidden text-xs text-amber-400 flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+        <span id="uploadStatusText">Reading statement files...</span>
       </div>
 
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
         <button onclick="closeModal('uploadModal')" class="px-3.5 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
-        <button onclick="startBatchCSVIngestion()" class="px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Start Batch Scan</button>
+        <button onclick="startBatchCSVIngestion()" id="btnStartBatch" class="px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Start Ingest</button>
       </div>
     </div>
   </div>
@@ -271,7 +280,7 @@
           <h3 class="font-bold text-sm text-slate-100" id="fileQueueBadge">File 1 of 1: Statement.csv</h3>
           <span class="text-[10px] bg-indigo-950 border border-indigo-800 text-indigo-300 px-2 py-0.5 rounded font-mono" id="fileQueueCounter">1 / 1</span>
         </div>
-        <p class="text-xs text-slate-400 mt-1">Review travel charges from this specific statement before advancing to the next file.</p>
+        <p class="text-xs text-slate-400 mt-1">Review travel charges from this specific statement before advancing.</p>
       </div>
 
       <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
@@ -388,6 +397,26 @@
     let currentBatchIndex = 0;
     let currentFileTravelItems = [];
 
+    // Notification Toast System
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toastNotification');
+      const text = document.getElementById('toastMessage');
+      const content = document.getElementById('toastContent');
+      text.innerText = msg;
+      content.className = isError 
+        ? "bg-slate-900 border border-rose-500 rounded-xl px-4 py-3 shadow-2xl flex items-center justify-between text-xs text-rose-300" 
+        : "bg-slate-900 border border-emerald-500 rounded-xl px-4 py-3 shadow-2xl flex items-center justify-between text-xs text-emerald-300";
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      toast.classList.add('opacity-100');
+      setTimeout(() => hideToast(), 4500);
+    }
+
+    function hideToast() {
+      const toast = document.getElementById('toastNotification');
+      toast.classList.remove('opacity-100');
+      toast.classList.add('opacity-0', 'pointer-events-none');
+    }
+
     function init() {
       const now = new Date();
       const day = now.getDate();
@@ -426,6 +455,7 @@
     function resetChecklistToCalendar() {
       syncChecklistToCurrentDate(true);
       calcCheckingCoverage();
+      showToast("Checking schedule synced to calendar date.");
     }
 
     function calcCheckingCoverage() {
@@ -668,11 +698,10 @@
     }
 
     function resetToStatementData() {
-      if (confirm("Reload baseline statement numbers and clear manual imports?")) {
-        localStorage.removeItem('budget_spend_map');
-        localStorage.removeItem('category_transactions_map');
-        setBudgetMode(currentMode, false);
-      }
+      localStorage.removeItem('budget_spend_map');
+      localStorage.removeItem('category_transactions_map');
+      setBudgetMode(currentMode, false);
+      showToast("Reset to statement baselines.");
     }
 
     function filterCat(type) {
@@ -713,11 +742,12 @@
 
     function parseTransactionDate(raw) {
       if (!raw) return null;
-      raw = raw.trim();
+      raw = raw.trim().replace(/^["']|["']$/g, '');
       if (raw.includes('-')) {
         const parts = raw.split('-');
         if (parts.length >= 3) {
-          return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10), day: parseInt(parts[2], 10) };
+          const dayPart = parts[2].split(' ')[0].split('T')[0];
+          return { year: parseInt(parts[0], 10), month: parseInt(parts[1], 10), day: parseInt(dayPart, 10) };
         }
       }
       if (raw.includes('/')) {
@@ -725,7 +755,7 @@
         if (parts.length >= 3) {
           let m = parseInt(parts[0], 10);
           let d = parseInt(parts[1], 10);
-          let y = parseInt(parts[2], 10);
+          let y = parseInt(parts[2].split(' ')[0], 10);
           if (y < 100) y += 2000;
           return { year: y, month: m, day: d };
         }
@@ -733,17 +763,22 @@
       return null;
     }
 
-    // Sequential batch ingestion
+    // --- BATCH INGESTION (SINGLE OR MULTI-FILE COMPATIBLE) ---
     async function startBatchCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
       const targetMonth = parseInt(document.getElementById('importMonthSelect').value, 10);
       const targetYear = parseInt(document.getElementById('importYearSelect').value, 10);
+      const statusLine = document.getElementById('uploadStatusLine');
+      const statusText = document.getElementById('uploadStatusText');
 
       if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Please select one or more CSV statement files first.");
+        showToast("Please choose one or more CSV files first.", true);
         return;
       }
+
+      statusLine.classList.remove('hidden');
+      statusText.innerText = `Scanning ${fileInput.files.length} file(s)...`;
 
       stagedSpendMap = {};
       stagedCategoryTransactions = {};
@@ -760,11 +795,12 @@
         });
       }
 
-      const readPromises = Array.from(fileInput.files).map(file => {
-        return new Promise((resolve, reject) => {
+      const files = Array.from(fileInput.files);
+      const readPromises = files.map(file => {
+        return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onload = e => resolve({ name: file.name, text: e.target.result });
-          reader.onerror = err => reject(err);
+          reader.onerror = () => resolve({ name: file.name, text: "" });
           reader.readAsText(file);
         });
       });
@@ -774,14 +810,17 @@
         batchFileQueue = [];
 
         rawFiles.forEach(f => {
-          const parsed = parseSingleStatementFile(f.name, f.text, targetMonth, targetYear);
-          if (parsed) batchFileQueue.push(parsed);
+          if (f.text && f.text.length > 0) {
+            const parsed = parseSingleStatementFile(f.name, f.text, targetMonth, targetYear);
+            if (parsed) batchFileQueue.push(parsed);
+          }
         });
 
+        statusLine.classList.add('hidden');
         closeModal('uploadModal');
 
         if (batchFileQueue.length === 0) {
-          alert(`No valid transactions found for Month ${targetMonth}/${targetYear} in the selected file(s).`);
+          showToast(`No rows found for Month ${targetMonth}/${targetYear}.`, true);
           return;
         }
 
@@ -789,7 +828,8 @@
         showFileTravelModal(currentBatchIndex);
 
       } catch (err) {
-        alert("Error reading files: " + err);
+        statusLine.classList.add('hidden');
+        showToast("Error processing file: " + err, true);
       }
     }
 
@@ -836,7 +876,6 @@
 
         let amt = 0;
 
-        // SIGN & ACCOUNT RULES
         if (isChase) {
           if (rawAmt < 0) amt = Math.abs(rawAmt);
           else continue;
@@ -844,9 +883,9 @@
           if (rawAmt > 0) amt = rawAmt;
           else continue;
         } else {
-          // USAA Checking
+          // USAA Checking Outflows only
           if (rawAmt < 0) amt = Math.abs(rawAmt);
-          else continue; // Skip deposits, pensions, payroll
+          else continue;
         }
 
         if (amt <= 0) continue;
@@ -858,7 +897,6 @@
 
         const uDesc = desc.toUpperCase();
 
-        // Skip internal transfers and credit card payoffs
         if (
           uDesc.includes('MOBILE PAYMENT') || 
           uDesc.includes('PAYMENT THANK YOU') || 
@@ -875,7 +913,6 @@
 
         processedCount++;
 
-        // Travel Check
         const isTravel = travelKeywords.some(k => uDesc.includes(k));
         if (isTravel) {
           const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
@@ -979,7 +1016,7 @@
     function showFileTravelModal(index) {
       if (index >= batchFileQueue.length) {
         commitStagedData();
-        alert("Batch Complete! All statement files have been confirmed and merged.");
+        showToast("Batch Ingest Complete! Statements merged.");
         return;
       }
 
@@ -997,7 +1034,7 @@
       if (currentFileTravelItems.length > 0) {
         document.getElementById('fileQueueBadge').innerText = `File ${index + 1}: ${fileData.fileName}`;
         document.getElementById('fileQueueCounter').innerText = `${index + 1} / ${batchFileQueue.length}`;
-        document.getElementById('advanceBatchBtn').innerText = index + 1 === batchFileQueue.length ? "Confirm & Finish Batch" : `Confirm ${fileData.fileName} & Continue`;
+        document.getElementById('advanceBatchBtn').innerText = index + 1 === batchFileQueue.length ? "Confirm & Finish Batch" : `Confirm & Next File`;
 
         renderCurrentFileTravelQueue();
         openModal('travelAssignModal');
@@ -1034,7 +1071,7 @@
         `;
       });
 
-      document.getElementById('travelReviewStatus').innerText = `${currentFileTravelItems.length} items flagged in this file`;
+      document.getElementById('travelReviewStatus').innerText = `${currentFileTravelItems.length} items flagged`;
     }
 
     function setFileTravelType(idx, type) {
