@@ -15,7 +15,7 @@
   <!-- Mobile Header -->
   <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
     <div>
-      <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget & Audit</h1>
+      <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget & Cash Flow</h1>
       <p class="text-[11px] text-slate-400">AMEX · Chase · USAA Checking</p>
     </div>
     <div class="flex items-center gap-2">
@@ -29,6 +29,40 @@
   </header>
 
   <main class="p-4 space-y-4 max-w-lg mx-auto">
+
+    <!-- Pre-Payday Checking & Card Payoff Coverage Calculator -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Checking Balance & Card Coverage</h2>
+        <span id="nextPaydayBadge" class="text-[11px] font-medium text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/80">Next Payday: --</span>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-[11px] text-slate-400 mb-1">Current Checking Bal ($)</label>
+          <input type="number" step="0.01" id="checkingBalInput" oninput="calcCheckingCoverage()" placeholder="8000.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono text-emerald-400 font-bold" />
+        </div>
+        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-right">
+          <span class="text-[10px] text-slate-500 block">Upcoming Non-Card Debits</span>
+          <span id="upcomingDebitsDisplay" class="text-xs font-mono font-semibold text-rose-400">-$0.00</span>
+        </div>
+      </div>
+
+      <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Available to Cover Cards Prior to Payday:</span>
+          <span id="availBeforePayday" class="font-mono font-bold text-slate-200">$0.00</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Current Adjusted Card Payoff Needed:</span>
+          <span id="neededCardPayoff" class="font-mono text-amber-300">$0.00</span>
+        </div>
+        <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center">
+          <span class="font-semibold text-slate-300">Coverage Verdict:</span>
+          <span id="coverageVerdict" class="font-mono font-bold text-xs px-2 py-0.5 rounded">Calculating...</span>
+        </div>
+      </div>
+    </section>
 
     <!-- Credit Card Burn Calculator -->
     <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
@@ -142,14 +176,14 @@
     </section>
   </main>
 
-  <!-- Step 1: Statement CSV Upload Modal with Month Selector -->
+  <!-- Step 1: Statement CSV Upload Modal -->
   <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div class="flex justify-between items-center">
         <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select a CSV statement. Choose the target month to filter out other months and keep transaction drilldowns organized.</p>
+      <p class="text-xs text-slate-400">Select an export file from USAA, AMEX, or Chase. Column headers are automatically detected.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -202,7 +236,7 @@
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div>
         <h3 class="font-bold text-sm text-slate-200">Assign Monthly Travel & Flights</h3>
-        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to this month's Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal entertainment.</p>
+        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal entertainment.</p>
       </div>
 
       <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
@@ -235,12 +269,11 @@
   </div>
 
   <script>
-    // 1. Plan Baseline Dataset with Giving Category Broken Out[cite: 2]
     const planCategories = [
       { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joe's" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee, Takeout" },
       { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, King Soopers Fuel, Costco" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Target, Alo" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 823.94, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Target, Erin Drew" },
       { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
       { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
       { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, HBO Max $19, Apple" },
@@ -262,16 +295,15 @@
       { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
-    // 2. Statement Reality Dataset with Giving Category Broken Out[cite: 2]
     const realityCategories = [
       { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150)" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland dining" },
       { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, KS Fuel, Costco Gas" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 680.19, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Alo Yoga, Target" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 823.94, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Alo, Target, Erin Drew" },
       { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Outdoor, Durston, Fly Fishing" },
       { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
       { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash ($72), Sport Clips ($90), E-470" },
-      { id: "pet_care", name: "Pet Grooming & Kennel", target: 180.00, spent: 143.75, type: "Essential", source: "AMEX/Chase", note: "Erin Drew grooming $143.75" },
+      { id: "pet_care", name: "Pet Care & Kennel", target: 100.00, spent: 0.00, type: "Essential", source: "AMEX/Chase", note: "Jackson Creek Kennel & Vet" },
       { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 47.31, type: "Discretionary", source: "AMEX", note: "2-3 visits per month" },
       { id: "home", name: "Home Maintenance", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Hardware" },
       { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays, Penrad, Eye clinics" },
@@ -297,18 +329,20 @@
     let categories = [];
 
     const baseDebits = [
-      { day: 1, name: "Freedom Mortgage", amountPlan: 2864.20, amountReality: 2864.20 },
-      { day: 1, name: "Tricare Select", amountPlan: 31.25, amountReality: 31.25 },
-      { day: 3, name: "VGLI Insurance", amountPlan: 116.00, amountReality: 116.00 },
-      { day: 4, name: "Fubo TV", amountPlan: 125.00, amountReality: 124.41 },
-      { day: 9, name: "Utilities (CSU)", amountPlan: 311.00, amountReality: 311.00 },
-      { day: 14, name: "State Farm", amountPlan: 34.00, amountReality: 34.00 },
-      { day: 16, name: "USAA Auto Loan", amountPlan: 1581.85, amountReality: 1581.85 },
-      { day: 16, name: "USAA P&C Insurance", amountPlan: 465.00, amountReality: 324.00 },
-      { day: 18, name: "Flying Horse Club", amountPlan: 828.00, amountReality: 828.00 },
-      { day: 21, name: "HOA (Hammersmith)", amountPlan: 250.00, amountReality: 250.00 },
-      { day: 21, name: "Royal Crest Dairy", amountPlan: 130.00, amountReality: 95.00 },
-      { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00 }
+      { day: 1, name: "Freedom Mortgage", amountPlan: 2864.20, amountReality: 2864.20, isCard: false },
+      { day: 1, name: "Tricare Select", amountPlan: 31.25, amountReality: 31.25, isCard: false },
+      { day: 3, name: "VGLI Insurance", amountPlan: 116.00, amountReality: 116.00, isCard: false },
+      { day: 4, name: "Fubo TV", amountPlan: 125.00, amountReality: 124.41, isCard: false },
+      { day: 9, name: "Utilities (CSU)", amountPlan: 311.00, amountReality: 311.00, isCard: false },
+      { day: 11, name: "Transfer to Long Term", amountPlan: 3000.00, amountReality: 3000.00, isCard: false },
+      { day: 11, name: "Transfer to Short Term", amountPlan: 2000.00, amountReality: 2000.00, isCard: false },
+      { day: 14, name: "State Farm", amountPlan: 34.00, amountReality: 34.00, isCard: false },
+      { day: 16, name: "USAA Auto Loan", amountPlan: 1581.85, amountReality: 1581.85, isCard: false },
+      { day: 16, name: "USAA P&C Insurance", amountPlan: 465.00, amountReality: 324.00, isCard: false },
+      { day: 18, name: "Flying Horse Club", amountPlan: 828.00, amountReality: 828.00, isCard: false },
+      { day: 21, name: "HOA (Hammersmith)", amountPlan: 250.00, amountReality: 250.00, isCard: false },
+      { day: 21, name: "Royal Crest Dairy", amountPlan: 130.00, amountReality: 95.00, isCard: false },
+      { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00, isCard: true }
     ];
 
     let stagedSpendMap = {};
@@ -330,27 +364,89 @@
       document.getElementById('chaseInput').value = localStorage.getItem('budget_chase') || '3539.53';
       document.getElementById('erInput').value = localStorage.getItem('budget_er') || '2126.96';
       document.getElementById('efundInput').value = localStorage.getItem('budget_efund') || '28000';
+      document.getElementById('checkingBalInput').value = localStorage.getItem('budget_checking_bal') || '8500.00';
 
       calcRunway();
       setBudgetMode(currentMode, false);
+      calcCheckingCoverage();
     }
 
-    // Interactive Emergency Fund Runway Calculator[cite: 2]
+    // Checking Pre-Payday Availability and Card Coverage Calculator
+    function calcCheckingCoverage() {
+      const checkingBal = parseFloat(document.getElementById('checkingBalInput').value) || 0;
+      localStorage.setItem('budget_checking_bal', checkingBal);
+
+      const now = new Date();
+      const currentDay = now.getDate();
+
+      // Determine next payday: either the 10th (MTSI) or the 1st of next month (Pension/VA)
+      let nextPaydayText = "";
+      let nextPaydayDay = 10;
+      if (currentDay < 10) {
+        nextPaydayText = "10th (MTSI)";
+        nextPaydayDay = 10;
+      } else {
+        nextPaydayText = "1st (Pension/VA)";
+        nextPaydayDay = 32; // Days until end of month + 1st
+      }
+      document.getElementById('nextPaydayBadge').innerText = `Next Payday: ${nextPaydayText}`;
+
+      // Sum all scheduled checking debits due strictly BEFORE the next payday, excluding credit cards
+      const isPlan = currentMode === 'plan';
+      let upcomingDebits = 0;
+
+      baseDebits.forEach((item, idx) => {
+        const isChecked = localStorage.getItem(`chk_${idx}`) === 'true';
+        if (item.isCard || isChecked) return; // Ignore credit cards and checked transactions
+
+        const amt = isPlan ? item.amountPlan : item.amountReality;
+        if (currentDay < 10) {
+          // Looking ahead to day 10
+          if (item.day >= currentDay && item.day < 10) upcomingDebits += amt;
+        } else {
+          // After the 10th, looking ahead to day 1 of next month
+          if (item.day >= currentDay) upcomingDebits += amt;
+        }
+      });
+
+      document.getElementById('upcomingDebitsDisplay').innerText = `-$${upcomingDebits.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const availableBeforePayday = checkingBal - upcomingDebits;
+      document.getElementById('availBeforePayday').innerText = `$${availableBeforePayday.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      // Card payoff needed right now
+      const amex = parseFloat(document.getElementById('amexInput').value) || 0;
+      const chase = parseFloat(document.getElementById('chaseInput').value) || 0;
+      const er = parseFloat(document.getElementById('erInput').value) || 0;
+      const adjustedCards = Math.max(0, (amex + chase) - er);
+      document.getElementById('neededCardPayoff').innerText = `$${adjustedCards.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const diff = availableBeforePayday - adjustedCards;
+      const verdict = document.getElementById('coverageVerdict');
+
+      if (diff >= 0) {
+        verdict.innerText = `Fully Covered (+$${diff.toLocaleString('en-US', {maximumFractionDigits: 0})} Surplus)`;
+        verdict.className = "font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+      } else {
+        verdict.innerText = `Shortfall (-$${Math.abs(diff).toLocaleString('en-US', {maximumFractionDigits: 0})} Deficit)`;
+        verdict.className = "font-mono font-bold text-xs px-2 py-0.5 rounded bg-rose-950/80 text-rose-400 border border-rose-800";
+      }
+    }
+
     function calcRunway() {
       const efund = parseFloat(document.getElementById('efundInput').value) || 0;
       localStorage.setItem('budget_efund', efund);
 
-      const totalEssentials = 11921.61; // Total essential burn from 2026 Budget[cite: 2]
-      const pensionVA = 5601.23;       // Pension ($4359.33) + VA Disability ($1241.90)[cite: 2]
-      const netShortfall = totalEssentials - pensionVA; // $6,320.38 / month needed[cite: 2]
+      const totalEssentials = 11921.61;[cite: 2]
+      const pensionVA = 5601.23;[cite: 2]
+      const netShortfall = totalEssentials - pensionVA;[cite: 2]
+      const runwayMonths = netShortfall > 0 ? (efund / netShortfall) : 999;[cite: 2]
 
-      const runwayMonths = netShortfall > 0 ? (efund / netShortfall) : 999;
-
-      document.getElementById('shortfallDisplay').innerText = `-$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}/mo`;
-      document.getElementById('netGapDisplay').innerText = `$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / mo`;
+      document.getElementById('shortfallDisplay').innerText = `-$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}/mo`;[cite: 2]
+      document.getElementById('netGapDisplay').innerText = `$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / mo`;[cite: 2]
       
       const pill = document.getElementById('runwayPill');
-      pill.innerText = `${runwayMonths.toFixed(2)} Months Runway`;
+      pill.innerText = `${runwayMonths.toFixed(2)} Months Runway`;[cite: 2]
       if (runwayMonths >= 6) {
         pill.className = "text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80";
       } else if (runwayMonths >= 3) {
@@ -375,10 +471,10 @@
 
       document.getElementById('modeLabel').innerText = isPlan ? 'Plan' : 'Reality';
       document.getElementById('modeSubtext').innerText = isPlan 
-        ? 'Showing 2026 Planned Baseline ($6,400 Card Payment)' 
+        ? 'Showing 2026 Planned Baseline ($6,400 Card Payment)'[cite: 2] 
         : 'Showing Statement Reality Tuned Numbers ($7,800 Card Payment)';
 
-      const cardCap = isPlan ? 6400.00 : 7800.00;
+      const cardCap = isPlan ? 6400.00 : 7800.00;[cite: 2]
       document.getElementById('targetCardLimit').innerText = `$${cardCap.toLocaleString('en-US', {minimumFractionDigits: 2})} / mo`;
 
       const baseCats = isPlan ? planCategories : realityCategories;
@@ -392,6 +488,7 @@
       calcSpending();
       renderCategories(currentFilter);
       renderCashFlow();
+      calcCheckingCoverage();
     }
 
     function calcSpending() {
@@ -403,7 +500,7 @@
       localStorage.setItem('budget_chase', chase);
       localStorage.setItem('budget_er', er);
 
-      const cardCap = currentMode === 'plan' ? 6400.00 : 7800.00;
+      const cardCap = currentMode === 'plan' ? 6400.00 : 7800.00;[cite: 2]
       const adjusted = (amex + chase) - er;
       const pct = (adjusted / cardCap) * 100;
       const remaining = cardCap - adjusted;
@@ -423,6 +520,8 @@
         ou.innerText = `$${Math.abs(remaining).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} over budget`;
         ou.className = 'text-rose-400 font-semibold font-mono';
       }
+
+      calcCheckingCoverage();
     }
 
     function renderCategories(filter) {
@@ -476,7 +575,6 @@
       }
     }
 
-    // Drill down into transactions for a tapped category
     function drillCategory(catId) {
       const cat = categories.find(c => c.id === catId);
       if (!cat) return;
@@ -520,7 +618,7 @@
     }
 
     function resetToStatementData() {
-      if (confirm("Reload actual spending numbers calculated from statements?")) {
+      if (confirm("Reload baseline statement numbers?")) {
         localStorage.removeItem('budget_spend_map');
         localStorage.removeItem('category_transactions_map');
         setBudgetMode(currentMode, false);
@@ -550,7 +648,7 @@
               <input type="checkbox" id="chk-${idx}" onchange="toggleCheck(${idx})" ${checked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0 cursor-pointer">
               <label for="chk-${idx}" class="text-slate-300 font-medium cursor-pointer ${checked ? 'line-through text-slate-500' : ''}">Day ${item.day}: ${item.name}</label>
             </div>
-            <span class="font-mono ${item.day === 28 ? 'text-indigo-400 font-bold' : 'text-slate-400'}">-$${amount.toFixed(2)}</span>
+            <span class="font-mono ${item.isCard ? 'text-indigo-400 font-bold' : 'text-slate-400'}">-$${amount.toFixed(2)}</span>
           </div>
         `;
       });
@@ -560,11 +658,13 @@
       const el = document.getElementById(`chk-${idx}`);
       localStorage.setItem(`chk_${idx}`, el.checked);
       renderCashFlow();
+      calcCheckingCoverage();
     }
 
     function resetChecklist() {
       baseDebits.forEach((_, idx) => localStorage.removeItem(`chk_${idx}`));
       renderCashFlow();
+      calcCheckingCoverage();
     }
 
     function parseTransactionDate(raw) {
@@ -589,7 +689,7 @@
       return null;
     }
 
-    // CSV Ingestion with Transaction Drilldown Retention
+    // CSV Ingestion with Intelligent Header Detection (USAA, AMEX, Chase)
     function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -630,10 +730,21 @@
 
         stagedTravelList = [];
 
-        const header = lines[0].toLowerCase();
-        const isAmex = header.includes('card member') || header.includes('account #');
-        const isChase = header.includes('trans date') || header.includes('post date');
+        // Parse header row dynamically to find exact column indices
+        const delim = lines[0].includes('|') ? '|' : ',';
+        const headerTokens = lines[0].split(delim).map(c => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
 
+        let dateIdx = headerTokens.findIndex(h => h.includes('date'));
+        let descIdx = headerTokens.findIndex(h => h === 'description' || h.includes('payee') || h.includes('merchant'));
+        let amtIdx = headerTokens.findIndex(h => h === 'amount' || h.includes('amt'));
+        let memberIdx = headerTokens.findIndex(h => h.includes('card member') || h.includes('member'));
+
+        // Fallbacks if header labels differ
+        if (dateIdx === -1) dateIdx = 0;
+        if (descIdx === -1) descIdx = 1;
+        if (amtIdx === -1) amtIdx = headerTokens.length - 1;
+
+        const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
         const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR'];
         const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
 
@@ -642,34 +753,26 @@
 
         for (let i = 1; i < lines.length; i++) {
           const row = lines[i];
-          const delim = row.includes('|') ? '|' : ',';
           const cols = row.split(delim).map(c => c.replace(/^["']|["']$/g, '').trim());
-          if (cols.length < 3) continue;
+          if (cols.length <= Math.max(dateIdx, descIdx, amtIdx)) continue;
 
-          let rawDate = cols[0];
-          let desc = "";
-          let amt = 0;
-          let member = "";
+          let rawDate = cols[dateIdx];
+          let desc = cols[descIdx];
+          let amt = parseFloat(cols[amtIdx]);
+          let member = memberIdx !== -1 ? (cols[memberIdx] || "") : "";
 
-          if (isChase && cols.length >= 6) {
-            desc = cols[2];
-            amt = parseFloat(cols[5]);
+          // Sign normalization: on Chase debits are negative; on USAA debits are negative; on AMEX charges are positive
+          if (isChase) {
             if (amt < 0) amt = Math.abs(amt);
-            else continue;
-          } else if (isAmex) {
-            desc = cols[1];
-            member = cols[2] || "";
-            amt = parseFloat(cols[cols.length - 1]);
-            if (amt <= 0) continue;
+            else continue; // skip card payments
           } else {
-            desc = cols[1];
-            amt = parseFloat(cols[2]);
             if (amt < 0) amt = Math.abs(amt);
             else if (amt <= 0) continue;
           }
 
           if (isNaN(amt) || amt <= 0) continue;
 
+          // Filter by selected Month and Year
           const parsedD = parseTransactionDate(rawDate);
           if (parsedD) {
             if (parsedD.month !== targetMonth || parsedD.year !== targetYear) {
@@ -681,10 +784,13 @@
           processedForMonth++;
           const uDesc = desc.toUpperCase();
 
-          if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU')) continue;
+          // Skip credit card payoff transfers
+          if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
+            continue;
+          }
 
+          // Check if travel charge
           const isTravel = travelKeywords.some(k => uDesc.includes(k));
-
           if (isTravel) {
             const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
             
@@ -699,29 +805,73 @@
             continue;
           }
 
-          // Rule-based classification
+          // Category classification rules
           let cat = 'ent_misc';
+
+          // 1. Giving
           if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
             cat = 'giving';
-          } else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK')) {
+          } 
+          // 2. Gas
+          else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG')) {
             cat = 'gas';
-          } else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
+          } 
+          // 3. Groceries
+          else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
             cat = 'groceries';
-          } else if (uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA')) {
+          } 
+          // 4. Stephanie Personal (including Erin Drew)
+          else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA')) {
             cat = 'stephanie';
-          } else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE')) {
+          } 
+          // 5. Brian Personal
+          else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE')) {
             cat = 'brian';
-          } else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH')) {
+          } 
+          // 6. Grooming & Auto
+          else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD')) {
             cat = 'grooming_auto';
-          } else if (uDesc.includes('ERIN DREW') || uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
+          } 
+          // 7. Pet Care
+          else if (uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
             cat = 'pet_care';
-          } else if (uDesc.includes('INTERQUEST LIQUOR')) {
+          } 
+          // 8. Liquor
+          else if (uDesc.includes('INTERQUEST LIQUOR')) {
             cat = 'liquor';
-          } else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
+          } 
+          // 9. Checking Specific Outflows
+          else if (uDesc.includes('FREEDOM') && uDesc.includes('MTG')) {
+            cat = 'mortgage';
+          } else if (uDesc.includes('USAA LOAN')) {
+            cat = 'auto_loan';
+          } else if (uDesc.includes('USAA P&C')) {
+            cat = 'usaa_ins';
+          } else if (uDesc.includes('COLO SPGS UTILIT') || uDesc.includes('UTILITIES')) {
+            cat = 'utilities';
+          } else if (uDesc.includes('HAMMERSMITH')) {
+            cat = 'hoa';
+          } else if (uDesc.includes('FUBOTV') || uDesc.includes('FUBO TV')) {
+            cat = 'fubo';
+          } else if (uDesc.includes('PRUDENTIAL OSGLI') || uDesc.includes('VGLI')) {
+            cat = 'vgli';
+          } else if (uDesc.includes('STATE FARM')) {
+            cat = 'state_farm';
+          } else if (uDesc.includes('TRIWEST') || uDesc.includes('TRICARE')) {
+            cat = 'tricare';
+          } else if (uDesc.includes('FLYING HORSE')) {
+            cat = 'flying_horse';
+          }
+          // 10. Subscriptions
+          else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
             cat = 'monthly_subs';
-          } else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
+          } 
+          // 11. Home
+          else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
             cat = 'home';
-          } else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('BREWING')) {
+          } 
+          // 12. Dining
+          else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('BREWING')) {
             cat = 'food_drink';
           }
 
@@ -826,6 +976,7 @@
 
       renderCategories(currentFilter);
       calcSpending();
+      calcCheckingCoverage();
     }
 
     function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
