@@ -371,7 +371,6 @@
       calcCheckingCoverage();
     }
 
-    // Checking Pre-Payday Availability and Card Coverage Calculator
     function calcCheckingCoverage() {
       const checkingBal = parseFloat(document.getElementById('checkingBalInput').value) || 0;
       localStorage.setItem('budget_checking_bal', checkingBal);
@@ -379,32 +378,25 @@
       const now = new Date();
       const currentDay = now.getDate();
 
-      // Determine next payday: either the 10th (MTSI) or the 1st of next month (Pension/VA)
       let nextPaydayText = "";
-      let nextPaydayDay = 10;
       if (currentDay < 10) {
         nextPaydayText = "10th (MTSI)";
-        nextPaydayDay = 10;
       } else {
         nextPaydayText = "1st (Pension/VA)";
-        nextPaydayDay = 32; // Days until end of month + 1st
       }
       document.getElementById('nextPaydayBadge').innerText = `Next Payday: ${nextPaydayText}`;
 
-      // Sum all scheduled checking debits due strictly BEFORE the next payday, excluding credit cards
       const isPlan = currentMode === 'plan';
       let upcomingDebits = 0;
 
       baseDebits.forEach((item, idx) => {
         const isChecked = localStorage.getItem(`chk_${idx}`) === 'true';
-        if (item.isCard || isChecked) return; // Ignore credit cards and checked transactions
+        if (item.isCard || isChecked) return;
 
         const amt = isPlan ? item.amountPlan : item.amountReality;
         if (currentDay < 10) {
-          // Looking ahead to day 10
           if (item.day >= currentDay && item.day < 10) upcomingDebits += amt;
         } else {
-          // After the 10th, looking ahead to day 1 of next month
           if (item.day >= currentDay) upcomingDebits += amt;
         }
       });
@@ -414,7 +406,6 @@
       const availableBeforePayday = checkingBal - upcomingDebits;
       document.getElementById('availBeforePayday').innerText = `$${availableBeforePayday.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-      // Card payoff needed right now
       const amex = parseFloat(document.getElementById('amexInput').value) || 0;
       const chase = parseFloat(document.getElementById('chaseInput').value) || 0;
       const er = parseFloat(document.getElementById('erInput').value) || 0;
@@ -437,16 +428,16 @@
       const efund = parseFloat(document.getElementById('efundInput').value) || 0;
       localStorage.setItem('budget_efund', efund);
 
-      const totalEssentials = 11921.61;[cite: 2]
-      const pensionVA = 5601.23;[cite: 2]
-      const netShortfall = totalEssentials - pensionVA;[cite: 2]
-      const runwayMonths = netShortfall > 0 ? (efund / netShortfall) : 999;[cite: 2]
+      const totalEssentials = 11921.61;
+      const pensionVA = 5601.23;
+      const netShortfall = totalEssentials - pensionVA;
+      const runwayMonths = netShortfall > 0 ? (efund / netShortfall) : 999;
 
-      document.getElementById('shortfallDisplay').innerText = `-$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}/mo`;[cite: 2]
-      document.getElementById('netGapDisplay').innerText = `$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / mo`;[cite: 2]
+      document.getElementById('shortfallDisplay').innerText = `-$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}/mo`;
+      document.getElementById('netGapDisplay').innerText = `$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / mo`;
       
       const pill = document.getElementById('runwayPill');
-      pill.innerText = `${runwayMonths.toFixed(2)} Months Runway`;[cite: 2]
+      pill.innerText = `${runwayMonths.toFixed(2)} Months Runway`;
       if (runwayMonths >= 6) {
         pill.className = "text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80";
       } else if (runwayMonths >= 3) {
@@ -471,10 +462,10 @@
 
       document.getElementById('modeLabel').innerText = isPlan ? 'Plan' : 'Reality';
       document.getElementById('modeSubtext').innerText = isPlan 
-        ? 'Showing 2026 Planned Baseline ($6,400 Card Payment)'[cite: 2] 
+        ? 'Showing 2026 Planned Baseline ($6,400 Card Payment)' 
         : 'Showing Statement Reality Tuned Numbers ($7,800 Card Payment)';
 
-      const cardCap = isPlan ? 6400.00 : 7800.00;[cite: 2]
+      const cardCap = isPlan ? 6400.00 : 7800.00;
       document.getElementById('targetCardLimit').innerText = `$${cardCap.toLocaleString('en-US', {minimumFractionDigits: 2})} / mo`;
 
       const baseCats = isPlan ? planCategories : realityCategories;
@@ -500,7 +491,7 @@
       localStorage.setItem('budget_chase', chase);
       localStorage.setItem('budget_er', er);
 
-      const cardCap = currentMode === 'plan' ? 6400.00 : 7800.00;[cite: 2]
+      const cardCap = currentMode === 'plan' ? 6400.00 : 7800.00;
       const adjusted = (amex + chase) - er;
       const pct = (adjusted / cardCap) * 100;
       const remaining = cardCap - adjusted;
@@ -689,7 +680,6 @@
       return null;
     }
 
-    // CSV Ingestion with Intelligent Header Detection (USAA, AMEX, Chase)
     function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -730,7 +720,6 @@
 
         stagedTravelList = [];
 
-        // Parse header row dynamically to find exact column indices
         const delim = lines[0].includes('|') ? '|' : ',';
         const headerTokens = lines[0].split(delim).map(c => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
 
@@ -739,7 +728,6 @@
         let amtIdx = headerTokens.findIndex(h => h === 'amount' || h.includes('amt'));
         let memberIdx = headerTokens.findIndex(h => h.includes('card member') || h.includes('member'));
 
-        // Fallbacks if header labels differ
         if (dateIdx === -1) dateIdx = 0;
         if (descIdx === -1) descIdx = 1;
         if (amtIdx === -1) amtIdx = headerTokens.length - 1;
@@ -761,10 +749,9 @@
           let amt = parseFloat(cols[amtIdx]);
           let member = memberIdx !== -1 ? (cols[memberIdx] || "") : "";
 
-          // Sign normalization: on Chase debits are negative; on USAA debits are negative; on AMEX charges are positive
           if (isChase) {
             if (amt < 0) amt = Math.abs(amt);
-            else continue; // skip card payments
+            else continue;
           } else {
             if (amt < 0) amt = Math.abs(amt);
             else if (amt <= 0) continue;
@@ -772,7 +759,6 @@
 
           if (isNaN(amt) || amt <= 0) continue;
 
-          // Filter by selected Month and Year
           const parsedD = parseTransactionDate(rawDate);
           if (parsedD) {
             if (parsedD.month !== targetMonth || parsedD.year !== targetYear) {
@@ -784,12 +770,10 @@
           processedForMonth++;
           const uDesc = desc.toUpperCase();
 
-          // Skip credit card payoff transfers
           if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
             continue;
           }
 
-          // Check if travel charge
           const isTravel = travelKeywords.some(k => uDesc.includes(k));
           if (isTravel) {
             const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
@@ -805,42 +789,32 @@
             continue;
           }
 
-          // Category classification rules
           let cat = 'ent_misc';
 
-          // 1. Giving
           if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
             cat = 'giving';
           } 
-          // 2. Gas
           else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG')) {
             cat = 'gas';
           } 
-          // 3. Groceries
           else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
             cat = 'groceries';
           } 
-          // 4. Stephanie Personal (including Erin Drew)
           else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA')) {
             cat = 'stephanie';
           } 
-          // 5. Brian Personal
           else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE')) {
             cat = 'brian';
           } 
-          // 6. Grooming & Auto
           else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD')) {
             cat = 'grooming_auto';
           } 
-          // 7. Pet Care
           else if (uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
             cat = 'pet_care';
           } 
-          // 8. Liquor
           else if (uDesc.includes('INTERQUEST LIQUOR')) {
             cat = 'liquor';
           } 
-          // 9. Checking Specific Outflows
           else if (uDesc.includes('FREEDOM') && uDesc.includes('MTG')) {
             cat = 'mortgage';
           } else if (uDesc.includes('USAA LOAN')) {
@@ -862,15 +836,12 @@
           } else if (uDesc.includes('FLYING HORSE')) {
             cat = 'flying_horse';
           }
-          // 10. Subscriptions
           else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
             cat = 'monthly_subs';
           } 
-          // 11. Home
           else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
             cat = 'home';
           } 
-          // 12. Dining
           else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('BREWING')) {
             cat = 'food_drink';
           }
