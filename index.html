@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#020617" />
+  <meta name="theme-color" content="#10b981" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- High-visibility vibrant icon for iOS and Android -->
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/walkxcode/dashboard-icons/main/png/firefly-iii.png" />
   <link rel="manifest" href="manifest.json" />
   <title>2026 Budget & Cash Flow Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -196,7 +198,7 @@
         <h3 class="font-bold text-sm text-slate-200">Batch Ingest Statement CSVs</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select all three statements (AMEX, Chase, and USAA Checking) together. The app parses and aggregates all files simultaneously.</p>
+      <p class="text-xs text-slate-400">Select statement files together. You will confirm the travel expenses for each statement file sequentially.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -227,37 +229,39 @@
         </div>
 
         <div>
-          <label class="block text-[11px] text-slate-300 font-medium mb-1.5">Choose Statement Files (.csv) - Select Multiple</label>
+          <label class="block text-[11px] text-slate-300 font-medium mb-1.5">Choose Files (.csv) - Multi-Select Supported</label>
           <input type="file" id="statementFileInput" multiple accept=".csv,text/csv,text/plain" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-slate-800 file:text-indigo-400 hover:file:bg-slate-700 cursor-pointer bg-slate-950 p-1 rounded-lg border border-slate-800" />
-          <span class="text-[10px] text-slate-500 mt-1 block">Tip: Hold Shift or tap multiple files in your Files picker</span>
         </div>
 
         <div class="flex items-center space-x-2 pt-1">
           <input type="checkbox" id="overwriteSpendChk" checked class="rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0">
-          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Overwrite current category spend for this month</label>
+          <label for="overwriteSpendChk" class="text-[11px] text-slate-400">Reset month category spending before batch</label>
         </div>
       </div>
 
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
-        <button onclick="startBatchCSVIngestion()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Process Batch</button>
+        <button onclick="startBatchCSVIngestion()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Start Batch Scan</button>
       </div>
     </div>
   </div>
 
-  <!-- Step 2: Interactive Travel Assignment Modal -->
+  <!-- Step 2: Per-File Sequential Travel Assignment Modal -->
   <div id="travelAssignModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div>
-        <h3 class="font-bold text-sm text-slate-200">Assign Monthly Travel & Flights</h3>
-        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to Work Float, or <strong class="text-indigo-400">Personal Travel</strong> to route to vacation spending.</p>
+        <div class="flex justify-between items-center">
+          <h3 class="font-bold text-sm text-slate-200" id="fileQueueBadge">File 1 of 1: Statement.csv</h3>
+          <span class="text-[10px] bg-indigo-950 border border-indigo-800 text-indigo-300 px-2 py-0.5 rounded font-mono" id="fileQueueCounter">1 / 1</span>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">Review travel charges from this specific statement before advancing to the next file.</p>
       </div>
 
       <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
 
       <div class="flex justify-between items-center pt-3 border-t border-slate-800 text-xs">
-        <span id="travelReviewStatus" class="text-slate-400">0 of 0 assigned</span>
-        <button onclick="finalizeStatementIngestion()" class="px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow">Confirm & Save</button>
+        <span id="travelReviewStatus" class="text-slate-400">0 items</span>
+        <button onclick="confirmCurrentFileAndAdvance()" id="advanceBatchBtn" class="px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow">Confirm This File &rarr;</button>
       </div>
     </div>
   </div>
@@ -361,9 +365,12 @@
       { day: 28, name: "Card Payoff (AMEX/Chase)", amountPlan: 6400.00, amountReality: 7800.00, isCard: true }
     ];
 
+    // Global Batch & Staging State
     let stagedSpendMap = {};
-    let stagedTravelList = [];
     let stagedCategoryTransactions = {};
+    let batchFileQueue = [];
+    let currentBatchIndex = 0;
+    let currentFileTravelItems = [];
 
     function init() {
       const now = new Date();
@@ -412,12 +419,7 @@
       const now = new Date();
       const currentDay = now.getDate();
 
-      let nextPaydayText = "";
-      if (currentDay < 10) {
-        nextPaydayText = "10th (MTSI)";
-      } else {
-        nextPaydayText = "1st (Pension/VA)";
-      }
+      let nextPaydayText = currentDay < 10 ? "10th (MTSI)" : "1st (Pension/VA)";
       document.getElementById('nextPaydayBadge').innerText = `Next Payday: ${nextPaydayText}`;
 
       const isPlan = currentMode === 'plan';
@@ -715,7 +717,7 @@
       return null;
     }
 
-    // --- BATCH MULTI-FILE CSV INGESTION ENGINE ---
+    // --- SEQUENTIAL BATCH INGESTION (CONFIRM EACH FILE SEPARATELY) ---
     async function startBatchCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -742,15 +744,7 @@
         });
       }
 
-      stagedTravelList = [];
-
-      const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR', 'AIRLINE'];
-      const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
-
-      let totalProcessedCount = 0;
-      let filesCount = fileInput.files.length;
-
-      // Read each file via Promise
+      // Read files concurrently into array
       const readPromises = Array.from(fileInput.files).map(file => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -761,180 +755,229 @@
       });
 
       try {
-        const fileResults = await Promise.all(readPromises);
+        const rawFiles = await Promise.all(readPromises);
+        batchFileQueue = [];
 
-        fileResults.forEach((fileObj, fIdx) => {
-          const lines = fileObj.text.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
-          if (lines.length < 2) return;
-
-          const delim = lines[0].includes('|') ? '|' : ',';
-          const headerTokens = lines[0].split(delim).map(c => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
-
-          let dateIdx = headerTokens.findIndex(h => h.includes('date'));
-          let descIdx = headerTokens.findIndex(h => h === 'description' || h.includes('payee') || h.includes('merchant'));
-          let amtIdx = headerTokens.findIndex(h => h === 'amount' || h.includes('amt'));
-          let catIdx = headerTokens.findIndex(h => h === 'category');
-          let memberIdx = headerTokens.findIndex(h => h.includes('card member') || h.includes('member'));
-
-          if (dateIdx === -1) dateIdx = 0;
-          if (descIdx === -1) descIdx = 1;
-          if (amtIdx === -1) amtIdx = headerTokens.length - 1;
-
-          const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
-
-          for (let i = 1; i < lines.length; i++) {
-            const row = lines[i];
-            const cols = row.split(delim).map(c => c.replace(/^["']|["']$/g, '').trim());
-            if (cols.length <= Math.max(dateIdx, descIdx, amtIdx)) continue;
-
-            let rawDate = cols[dateIdx];
-            let desc = cols[descIdx];
-            let amt = parseFloat(cols[amtIdx]);
-            let bankCategory = catIdx !== -1 ? (cols[catIdx] || "").toUpperCase() : "";
-            let member = memberIdx !== -1 ? (cols[memberIdx] || "") : "";
-
-            if (isChase) {
-              if (amt < 0) amt = Math.abs(amt);
-              else continue;
-            } else {
-              if (amt < 0) amt = Math.abs(amt);
-              else if (amt <= 0) continue;
-            }
-
-            if (isNaN(amt) || amt <= 0) continue;
-
-            const parsedD = parseTransactionDate(rawDate);
-            if (parsedD) {
-              if (parsedD.month !== targetMonth || parsedD.year !== targetYear) continue;
-            }
-
-            totalProcessedCount++;
-            const uDesc = desc.toUpperCase();
-
-            // Skip transfers and card payoff ACH lines
-            if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
-              continue;
-            }
-
-            // Travel Check
-            const isTravel = travelKeywords.some(k => uDesc.includes(k));
-            if (isTravel) {
-              const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
-              stagedTravelList.push({
-                id: `trv_${fIdx}_${i}`,
-                date: rawDate,
-                desc: desc,
-                amount: amt,
-                member: member,
-                assigned: suggestsWork ? 'work' : 'personal'
-              });
-              continue;
-            }
-
-            // Category assignment
-            let cat = null;
-
-            if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
-              cat = 'giving';
-            } 
-            else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG') || uDesc.includes('N1 BLONDUOSI') || uDesc.includes('OB ADALGOTU') || uDesc.includes('OLIS ') || uDesc.includes('SHELL') || uDesc.includes('CHEVRON') || uDesc.includes('CONOCO')) {
-              cat = 'gas';
-            } 
-            else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY') || uDesc.includes('COSTCO WHSE') || uDesc.includes('KJORBUDIN') || uDesc.includes('KRAMBUDIN') || uDesc.includes('KRONAN')) {
-              cat = 'groceries';
-            } 
-            else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA') || uDesc.includes('ETSY') || uDesc.includes('MODODOC') || uDesc.includes('KADLIN') || uDesc.includes('PARIS MARKET') || uDesc.includes('GARN I GANGI') || uDesc.includes('BLODBERG') || uDesc.includes('PENNINN') || uDesc.includes('PATI DE ST BARTH')) {
-              cat = 'stephanie';
-            } 
-            else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE') || uDesc.includes('SP MY MEDIC')) {
-              cat = 'brian';
-            } 
-            else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD') || uDesc.includes('PARKING') || uDesc.includes('PRKG')) {
-              cat = 'grooming_auto';
-            } 
-            else if (uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
-              cat = 'pet_care';
-            } 
-            else if (uDesc.includes('INTERQUEST LIQUOR')) {
-              cat = 'liquor';
-            } 
-            else if (uDesc.includes('APPLE.COM') || uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY') || uDesc.includes('MLB.TV') || uDesc.includes('MICROSOFT')) {
-              cat = 'monthly_subs';
-            } 
-            else if (uDesc.includes('JARDBODIN') || uDesc.includes('UCHEALTH') || uDesc.includes('PENRAD') || uDesc.includes('EYE CLINIC') || uDesc.includes('CLINIC') || uDesc.includes('HOSPITAL') || uDesc.includes('DENTAL')) {
-              cat = 'health_well';
-            } 
-            else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
-              cat = 'home';
-            } 
-            else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('KAFFI') || uDesc.includes('BAKARI') || uDesc.includes('BAKERY') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('SBARRO') || uDesc.includes('BREWING') || uDesc.includes('STRIKID') || uDesc.includes('KETILKAFFI') || uDesc.includes('FISH CHIPS') || uDesc.includes('VOGAR') || uDesc.includes('SYSTRAKAFFI') || uDesc.includes('ELDSTO') || uDesc.includes('LUCALI') || uDesc.includes('MY NEIGHBOR FELIX') || uDesc.includes('LANNA THAI') || uDesc.includes('COFFEE')) {
-              cat = 'food_drink';
-            } 
-            else if (uDesc.includes('FREEDOM') && uDesc.includes('MTG')) {
-              cat = 'mortgage';
-            } else if (uDesc.includes('USAA LOAN')) {
-              cat = 'auto_loan';
-            } else if (uDesc.includes('USAA P&C')) {
-              cat = 'usaa_ins';
-            } else if (uDesc.includes('COLO SPGS UTILIT') || uDesc.includes('UTILITIES')) {
-              cat = 'utilities';
-            } else if (uDesc.includes('HAMMERSMITH')) {
-              cat = 'hoa';
-            } else if (uDesc.includes('FUBOTV') || uDesc.includes('FUBO TV')) {
-              cat = 'fubo';
-            } else if (uDesc.includes('PRUDENTIAL OSGLI') || uDesc.includes('VGLI')) {
-              cat = 'vgli';
-            } else if (uDesc.includes('STATE FARM')) {
-              cat = 'state_farm';
-            } else if (uDesc.includes('TRIWEST') || uDesc.includes('TRICARE')) {
-              cat = 'tricare';
-            } else if (uDesc.includes('FLYING HORSE')) {
-              cat = 'flying_horse';
-            }
-
-            if (!cat && bankCategory) {
-              if (bankCategory.includes('FOOD') || bankCategory.includes('DINING')) cat = 'food_drink';
-              else if (bankCategory.includes('GAS')) cat = 'gas';
-              else if (bankCategory.includes('GROCER')) cat = 'groceries';
-              else if (bankCategory.includes('HEALTH') || bankCategory.includes('WELLNESS')) cat = 'health_well';
-              else if (bankCategory.includes('SHOPPING')) cat = 'stephanie';
-              else if (bankCategory.includes('BILLS') || bankCategory.includes('UTILITIES')) cat = 'monthly_subs';
-            }
-
-            if (!cat) cat = 'ent_misc';
-
-            if (stagedSpendMap[cat] !== undefined) {
-              stagedSpendMap[cat] += amt;
-              if (!stagedCategoryTransactions[cat]) stagedCategoryTransactions[cat] = [];
-              stagedCategoryTransactions[cat].push({ date: rawDate, desc: desc, amount: amt, member: member });
-            }
-          }
+        rawFiles.forEach(f => {
+          const parsed = parseSingleStatementFile(f.name, f.text, targetMonth, targetYear);
+          if (parsed) batchFileQueue.push(parsed);
         });
 
         closeModal('uploadModal');
 
-        if (totalProcessedCount === 0) {
-          alert(`No transactions found for Month ${targetMonth}/${targetYear} across the ${filesCount} selected file(s).`);
+        if (batchFileQueue.length === 0) {
+          alert(`No transactions found for Month ${targetMonth}/${targetYear} in the selected file(s).`);
           return;
         }
 
-        if (stagedTravelList.length > 0) {
-          renderTravelQueue();
-          openModal('travelAssignModal');
-        } else {
-          commitStagedData();
-          alert(`Batch Ingest Complete!\nSuccessfully processed ${totalProcessedCount} transactions across ${filesCount} statements.`);
-        }
+        currentBatchIndex = 0;
+        showFileTravelModal(currentBatchIndex);
+
       } catch (err) {
-        alert("Error reading batch files: " + err);
+        alert("Error reading files: " + err);
       }
     }
 
-    function renderTravelQueue() {
+    function parseSingleStatementFile(fileName, fileText, targetMonth, targetYear) {
+      const lines = fileText.split(/\r\n|\n/).map(l => l.trim()).filter(l => l.length > 0);
+      if (lines.length < 2) return null;
+
+      const delim = lines[0].includes('|') ? '|' : ',';
+      const headerTokens = lines[0].split(delim).map(c => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
+
+      let dateIdx = headerTokens.findIndex(h => h.includes('date'));
+      let descIdx = headerTokens.findIndex(h => h === 'description' || h.includes('payee') || h.includes('merchant'));
+      let amtIdx = headerTokens.findIndex(h => h === 'amount' || h.includes('amt'));
+      let catIdx = headerTokens.findIndex(h => h === 'category');
+      let memberIdx = headerTokens.findIndex(h => h.includes('card member') || h.includes('member'));
+
+      if (dateIdx === -1) dateIdx = 0;
+      if (descIdx === -1) descIdx = 1;
+      if (amtIdx === -1) amtIdx = headerTokens.length - 1;
+
+      const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
+      const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR', 'AIRLINE'];
+      const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
+
+      let fileTravelItems = [];
+      let fileSpendMap = {};
+      let fileTxMap = {};
+      let processedCount = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i];
+        const cols = row.split(delim).map(c => c.replace(/^["']|["']$/g, '').trim());
+        if (cols.length <= Math.max(dateIdx, descIdx, amtIdx)) continue;
+
+        let rawDate = cols[dateIdx];
+        let desc = cols[descIdx];
+        let amt = parseFloat(cols[amtIdx]);
+        let bankCategory = catIdx !== -1 ? (cols[catIdx] || "").toUpperCase() : "";
+        let member = memberIdx !== -1 ? (cols[memberIdx] || "") : "";
+
+        if (isChase) {
+          if (amt < 0) amt = Math.abs(amt);
+          else continue;
+        } else {
+          if (amt < 0) amt = Math.abs(amt);
+          else if (amt <= 0) continue;
+        }
+
+        if (isNaN(amt) || amt <= 0) continue;
+
+        const parsedD = parseTransactionDate(rawDate);
+        if (parsedD) {
+          if (parsedD.month !== targetMonth || parsedD.year !== targetYear) continue;
+        }
+
+        processedCount++;
+        const uDesc = desc.toUpperCase();
+
+        if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
+          continue;
+        }
+
+        // Travel Check
+        const isTravel = travelKeywords.some(k => uDesc.includes(k));
+        if (isTravel) {
+          const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
+          fileTravelItems.push({
+            date: rawDate,
+            desc: desc,
+            amount: amt,
+            member: member,
+            assigned: suggestsWork ? 'work' : 'personal'
+          });
+          continue;
+        }
+
+        // Category Classification
+        let cat = null;
+
+        if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
+          cat = 'giving';
+        } 
+        else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG') || uDesc.includes('N1 BLONDUOSI') || uDesc.includes('OB ADALGOTU') || uDesc.includes('OLIS ') || uDesc.includes('SHELL') || uDesc.includes('CHEVRON') || uDesc.includes('CONOCO')) {
+          cat = 'gas';
+        } 
+        else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY') || uDesc.includes('COSTCO WHSE') || uDesc.includes('KJORBUDIN') || uDesc.includes('KRAMBUDIN') || uDesc.includes('KRONAN')) {
+          cat = 'groceries';
+        } 
+        else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA') || uDesc.includes('ETSY') || uDesc.includes('MODODOC') || uDesc.includes('KADLIN') || uDesc.includes('PARIS MARKET') || uDesc.includes('GARN I GANGI') || uDesc.includes('BLODBERG') || uDesc.includes('PENNINN') || uDesc.includes('PATI DE ST BARTH')) {
+          cat = 'stephanie';
+        } 
+        else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE') || uDesc.includes('SP MY MEDIC')) {
+          cat = 'brian';
+        } 
+        else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD') || uDesc.includes('PARKING') || uDesc.includes('PRKG')) {
+          cat = 'grooming_auto';
+        } 
+        else if (uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
+          cat = 'pet_care';
+        } 
+        else if (uDesc.includes('INTERQUEST LIQUOR')) {
+          cat = 'liquor';
+        } 
+        else if (uDesc.includes('APPLE.COM') || uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY') || uDesc.includes('MLB.TV') || uDesc.includes('MICROSOFT')) {
+          cat = 'monthly_subs';
+        } 
+        else if (uDesc.includes('JARDBODIN') || uDesc.includes('UCHEALTH') || uDesc.includes('PENRAD') || uDesc.includes('EYE CLINIC') || uDesc.includes('CLINIC') || uDesc.includes('HOSPITAL') || uDesc.includes('DENTAL')) {
+          cat = 'health_well';
+        } 
+        else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
+          cat = 'home';
+        } 
+        else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('KAFFI') || uDesc.includes('BAKARI') || uDesc.includes('BAKERY') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('SBARRO') || uDesc.includes('BREWING') || uDesc.includes('STRIKID') || uDesc.includes('KETILKAFFI') || uDesc.includes('FISH CHIPS') || uDesc.includes('VOGAR') || uDesc.includes('SYSTRAKAFFI') || uDesc.includes('ELDSTO') || uDesc.includes('LUCALI') || uDesc.includes('MY NEIGHBOR FELIX') || uDesc.includes('LANNA THAI') || uDesc.includes('COFFEE')) {
+          cat = 'food_drink';
+        } 
+        else if (uDesc.includes('FREEDOM') && uDesc.includes('MTG')) {
+          cat = 'mortgage';
+        } else if (uDesc.includes('USAA LOAN')) {
+          cat = 'auto_loan';
+        } else if (uDesc.includes('USAA P&C')) {
+          cat = 'usaa_ins';
+        } else if (uDesc.includes('COLO SPGS UTILIT') || uDesc.includes('UTILITIES')) {
+          cat = 'utilities';
+        } else if (uDesc.includes('HAMMERSMITH')) {
+          cat = 'hoa';
+        } else if (uDesc.includes('FUBOTV') || uDesc.includes('FUBO TV')) {
+          cat = 'fubo';
+        } else if (uDesc.includes('PRUDENTIAL OSGLI') || uDesc.includes('VGLI')) {
+          cat = 'vgli';
+        } else if (uDesc.includes('STATE FARM')) {
+          cat = 'state_farm';
+        } else if (uDesc.includes('TRIWEST') || uDesc.includes('TRICARE')) {
+          cat = 'tricare';
+        } else if (uDesc.includes('FLYING HORSE')) {
+          cat = 'flying_horse';
+        }
+
+        if (!cat && bankCategory) {
+          if (bankCategory.includes('FOOD') || bankCategory.includes('DINING')) cat = 'food_drink';
+          else if (bankCategory.includes('GAS')) cat = 'gas';
+          else if (bankCategory.includes('GROCER')) cat = 'groceries';
+          else if (bankCategory.includes('HEALTH') || bankCategory.includes('WELLNESS')) cat = 'health_well';
+          else if (bankCategory.includes('SHOPPING')) cat = 'stephanie';
+          else if (bankCategory.includes('BILLS') || bankCategory.includes('UTILITIES')) cat = 'monthly_subs';
+        }
+
+        if (!cat) cat = 'ent_misc';
+
+        if (!fileSpendMap[cat]) fileSpendMap[cat] = 0;
+        fileSpendMap[cat] += amt;
+
+        if (!fileTxMap[cat]) fileTxMap[cat] = [];
+        fileTxMap[cat].push({ date: rawDate, desc: desc, amount: amt, member: member });
+      }
+
+      return {
+        fileName: fileName,
+        travelItems: fileTravelItems,
+        spendMap: fileSpendMap,
+        txMap: fileTxMap,
+        processedCount: processedCount
+      };
+    }
+
+    function showFileTravelModal(index) {
+      if (index >= batchFileQueue.length) {
+        commitStagedData();
+        alert("Batch Complete! All statement files have been confirmed and merged.");
+        return;
+      }
+
+      const fileData = batchFileQueue[index];
+      currentFileTravelItems = fileData.travelItems;
+
+      // Merge this file's standard spending into the global accumulator
+      for (let cId in fileData.spendMap) {
+        if (!stagedSpendMap[cId]) stagedSpendMap[cId] = 0;
+        stagedSpendMap[cId] += fileData.spendMap[cId];
+
+        if (!stagedCategoryTransactions[cId]) stagedCategoryTransactions[cId] = [];
+        stagedCategoryTransactions[cId] = stagedCategoryTransactions[cId].concat(fileData.txMap[cId]);
+      }
+
+      // If this file has travel items, show modal for user review
+      if (currentFileTravelItems.length > 0) {
+        document.getElementById('fileQueueBadge').innerText = `File ${index + 1}: ${fileData.fileName}`;
+        document.getElementById('fileQueueCounter').innerText = `${index + 1} / ${batchFileQueue.length}`;
+        document.getElementById('advanceBatchBtn').innerText = index + 1 === batchFileQueue.length ? "Confirm & Finish Batch" : `Confirm ${fileData.fileName} & Continue`;
+
+        renderCurrentFileTravelQueue();
+        openModal('travelAssignModal');
+      } else {
+        // No travel items in this file, move directly to next file
+        currentBatchIndex++;
+        showFileTravelModal(currentBatchIndex);
+      }
+    }
+
+    function renderCurrentFileTravelQueue() {
       const container = document.getElementById('travelQueueList');
       container.innerHTML = '';
 
-      stagedTravelList.forEach((t, idx) => {
+      currentFileTravelItems.forEach((t, idx) => {
         const isWork = t.assigned === 'work';
         container.innerHTML += `
           <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
@@ -946,10 +989,10 @@
               <span class="text-xs font-mono font-bold text-slate-200 ml-2">$${t.amount.toFixed(2)}</span>
             </div>
             <div class="flex gap-2 pt-1">
-              <button onclick="setTravelType(${idx}, 'work')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${isWork ? 'bg-amber-500/20 text-amber-300 border-amber-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
+              <button onclick="setFileTravelType(${idx}, 'work')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${isWork ? 'bg-amber-500/20 text-amber-300 border-amber-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
                 🏢 Work ER
               </button>
-              <button onclick="setTravelType(${idx}, 'personal')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${!isWork ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
+              <button onclick="setFileTravelType(${idx}, 'personal')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${!isWork ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
                 🌴 Personal Travel
               </button>
             </div>
@@ -957,19 +1000,19 @@
         `;
       });
 
-      document.getElementById('travelReviewStatus').innerText = `${stagedTravelList.length} items staged`;
+      document.getElementById('travelReviewStatus').innerText = `${currentFileTravelItems.length} items flagged in this file`;
     }
 
-    function setTravelType(idx, type) {
-      stagedTravelList[idx].assigned = type;
-      renderTravelQueue();
+    function setFileTravelType(idx, type) {
+      currentFileTravelItems[idx].assigned = type;
+      renderCurrentFileTravelQueue();
     }
 
-    function finalizeStatementIngestion() {
+    function confirmCurrentFileAndAdvance() {
       let addedWorkER = 0;
       let addedPersonalTravel = 0;
 
-      stagedTravelList.forEach(t => {
+      currentFileTravelItems.forEach(t => {
         if (t.assigned === 'work') {
           addedWorkER += t.amount;
         } else {
@@ -983,16 +1026,17 @@
         stagedSpendMap['travel'] += addedPersonalTravel;
       }
 
-      const overwrite = document.getElementById('overwriteSpendChk').checked;
-      const currentER = overwrite ? 0 : (parseFloat(document.getElementById('erInput').value) || 0);
+      // Add this file's work ER to the top Work ER float input
+      const currentER = parseFloat(document.getElementById('erInput').value) || 0;
       const newER = currentER + addedWorkER;
       document.getElementById('erInput').value = newER.toFixed(2);
       localStorage.setItem('budget_er', newER);
 
-      commitStagedData();
       closeModal('travelAssignModal');
 
-      alert(`Batch Ingestion Complete!\n• Work ER Float: $${newER.toFixed(2)}\n• Added to Personal Travel: +$${addedPersonalTravel.toFixed(2)}`);
+      // Advance to next file in batch
+      currentBatchIndex++;
+      showFileTravelModal(currentBatchIndex);
     }
 
     function commitStagedData() {
