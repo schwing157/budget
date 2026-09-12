@@ -166,13 +166,26 @@
       <div id="categoryContainer" class="space-y-2.5"></div>
     </section>
 
-    <!-- Checking Cash Flow Timeline -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
-        <button onclick="resetChecklist()" class="text-[11px] text-slate-500 hover:text-slate-300">Reset Checks</button>
+    <!-- Checking Cash Flow Timeline & Remainder Callout -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
+          <span class="text-[10px] text-slate-500">Past dates auto-checked</span>
+        </div>
+        <button onclick="resetChecklistToCalendar()" class="text-[11px] text-indigo-400 hover:text-indigo-300">Sync to Day</button>
       </div>
-      <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80"></div>
+
+      <!-- Outstanding Checking Metric Callout -->
+      <div class="bg-slate-950 border border-indigo-900/60 rounded-xl p-3 flex justify-between items-center">
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-semibold block">Remaining Checking Debits</span>
+          <span class="text-[10px] text-slate-500">Excludes credit card payoffs</span>
+        </div>
+        <span id="remainderCheckingDisplay" class="font-mono font-bold text-base text-rose-400">-$0.00</span>
+      </div>
+
+      <div id="cashFlowList" class="space-y-2 text-xs divide-y divide-slate-800/80 pt-1"></div>
     </section>
   </main>
 
@@ -183,7 +196,7 @@
         <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select an export file from USAA, AMEX, or Chase. Column headers and bank categories are automatically read.</p>
+      <p class="text-xs text-slate-400">Select an export file from USAA, AMEX, or Chase. Travel charges will be presented for assignment.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -236,7 +249,7 @@
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div>
         <h3 class="font-bold text-sm text-slate-200">Assign Monthly Travel & Flights</h3>
-        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal travel.</p>
+        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to Work Float, or <strong class="text-indigo-400">Personal Travel</strong> to route to vacation spending.</p>
       </div>
 
       <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
@@ -269,16 +282,18 @@
   </div>
 
   <script>
+    // 1. Plan Baseline Dataset with Dedicated Travel Category[cite: 1]
     const planCategories = [
-      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Chase/Checking", note: "King Soopers, Trader Joe's, Costco Whse" },
+      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Chase/USAA", note: "King Soopers, Trader Joe's, Costco Whse" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Cafes, Coffee, Takeout" },
       { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "Costco Gas, 7-Eleven, KS Fuel, N1" },
       { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 823.94, type: "Discretionary", source: "AMEX/Chase", note: "Anthro, Target, Erin Drew, Etsy" },
       { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
+      { id: "travel", name: "Personal Travel & Vacation", target: 500.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Personal flights, vacation hotels & car rentals" },
       { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
       { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX/Chase", note: "Spot, Ting, Apple, HBO Max, Peacock" },
       { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
-      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Local tickets, movies, postage" },
+      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Local tickets, movies, postage" },
       { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Supplies" },
       { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX/Chase", note: "Copays, Jardbodin, Clinics" },
 
@@ -295,12 +310,14 @@
       { id: "tricare", name: "Tricare Select", target: 31.25, spent: 31.25, type: "Essential", source: "USAA", note: "Posted 9/1" }
     ];
 
+    // 2. Statement Reality Dataset with Dedicated Travel Category[cite: 1]
     const realityCategories = [
-      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase/Checking", note: "King Soopers ($700) + TJs ($400) + Costco Whse" },
+      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase/USAA", note: "King Soopers ($700) + TJs ($400) + Costco Whse" },
       { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland cafes & dining" },
       { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "Costco Gas, 7-Eleven, KS Fuel, Orkan, N1" },
       { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 823.94, type: "Discretionary", source: "AMEX/Chase", note: "Anthro, Target, Erin Drew, Etsy, Kadlin" },
       { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Outdoor, Durston, Fly Fishing" },
+      { id: "travel", name: "Personal Travel & Vacation", target: 800.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Personal flights, vacation hotels & car rentals" },
       { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
       { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash ($72), Sport Clips ($90), E-470" },
       { id: "pet_care", name: "Pet Care & Kennel", target: 100.00, spent: 0.00, type: "Essential", source: "AMEX/Chase", note: "Jackson Creek Kennel & Vet" },
@@ -366,8 +383,28 @@
       document.getElementById('efundInput').value = localStorage.getItem('budget_efund') || '28000';
       document.getElementById('checkingBalInput').value = localStorage.getItem('budget_checking_bal') || '8500.00';
 
+      // Auto-set checkboxes for past dates if not explicitly toggled
+      syncChecklistToCurrentDate(false);
+
       calcRunway();
       setBudgetMode(currentMode, false);
+      calcCheckingCoverage();
+    }
+
+    function syncChecklistToCurrentDate(force = true) {
+      const currentDay = new Date().getDate();
+      baseDebits.forEach((item, idx) => {
+        if (force || localStorage.getItem(`chk_${idx}`) === null) {
+          // If item's day has already passed in the month, mark as checked settled
+          const isPast = item.day < currentDay;
+          localStorage.setItem(`chk_${idx}`, isPast);
+        }
+      });
+      renderCashFlow();
+    }
+
+    function resetChecklistToCalendar() {
+      syncChecklistToCurrentDate(true);
       calcCheckingCoverage();
     }
 
@@ -387,23 +424,35 @@
       document.getElementById('nextPaydayBadge').innerText = `Next Payday: ${nextPaydayText}`;
 
       const isPlan = currentMode === 'plan';
-      let upcomingDebits = 0;
+      let upcomingDebitsBeforePayday = 0;
+      let totalRemainderMonthDebits = 0;
 
       baseDebits.forEach((item, idx) => {
         const isChecked = localStorage.getItem(`chk_${idx}`) === 'true';
-        if (item.isCard || isChecked) return;
-
         const amt = isPlan ? item.amountPlan : item.amountReality;
-        if (currentDay < 10) {
-          if (item.day >= currentDay && item.day < 10) upcomingDebits += amt;
-        } else {
-          if (item.day >= currentDay) upcomingDebits += amt;
+
+        // Metric 1: Remainder of Month Non-Card Debits
+        if (!item.isCard && !isChecked) {
+          totalRemainderMonthDebits += amt;
+        }
+
+        // Metric 2: Debits prior to the immediate next paycheck
+        if (!item.isCard && !isChecked) {
+          if (currentDay < 10) {
+            if (item.day >= currentDay && item.day < 10) upcomingDebitsBeforePayday += amt;
+          } else {
+            if (item.day >= currentDay) upcomingDebitsBeforePayday += amt;
+          }
         }
       });
 
-      document.getElementById('upcomingDebitsDisplay').innerText = `-$${upcomingDebits.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      // Update Remainder Callout at Bottom Section
+      document.getElementById('remainderCheckingDisplay').innerText = `-$${totalRemainderMonthDebits.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-      const availableBeforePayday = checkingBal - upcomingDebits;
+      // Update Top Section Cards
+      document.getElementById('upcomingDebitsDisplay').innerText = `-$${upcomingDebitsBeforePayday.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const availableBeforePayday = checkingBal - upcomingDebitsBeforePayday;
       document.getElementById('availBeforePayday').innerText = `$${availableBeforePayday.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
       const amex = parseFloat(document.getElementById('amexInput').value) || 0;
@@ -639,7 +688,7 @@
               <input type="checkbox" id="chk-${idx}" onchange="toggleCheck(${idx})" ${checked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0 cursor-pointer">
               <label for="chk-${idx}" class="text-slate-300 font-medium cursor-pointer ${checked ? 'line-through text-slate-500' : ''}">Day ${item.day}: ${item.name}</label>
             </div>
-            <span class="font-mono ${item.isCard ? 'text-indigo-400 font-bold' : 'text-slate-400'}">-$${amount.toFixed(2)}</span>
+            <span class="font-mono ${item.isCard ? 'text-indigo-400 font-bold' : (checked ? 'text-slate-600 line-through' : 'text-slate-300 font-semibold')}">-$${amount.toFixed(2)}</span>
           </div>
         `;
       });
@@ -648,12 +697,6 @@
     function toggleCheck(idx) {
       const el = document.getElementById(`chk-${idx}`);
       localStorage.setItem(`chk_${idx}`, el.checked);
-      renderCashFlow();
-      calcCheckingCoverage();
-    }
-
-    function resetChecklist() {
-      baseDebits.forEach((_, idx) => localStorage.removeItem(`chk_${idx}`));
       renderCashFlow();
       calcCheckingCoverage();
     }
@@ -680,7 +723,7 @@
       return null;
     }
 
-    // --- ENHANCED INTELLIGENT CSV INGESTION ENGINE ---
+    // CSV Ingestion with Dedicated Travel Category Routing
     function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -721,7 +764,6 @@
 
         stagedTravelList = [];
 
-        // Dynamic Header Token Search
         const delim = lines[0].includes('|') ? '|' : ',';
         const headerTokens = lines[0].split(delim).map(c => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
 
@@ -736,7 +778,7 @@
         if (amtIdx === -1) amtIdx = headerTokens.length - 1;
 
         const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
-        const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR'];
+        const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR', 'AIRLINE'];
         const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
 
         let skippedDifferentMonth = 0;
@@ -755,7 +797,7 @@
 
           if (isChase) {
             if (amt < 0) amt = Math.abs(amt);
-            else continue; // ignore card payments/refunds
+            else continue;
           } else {
             if (amt < 0) amt = Math.abs(amt);
             else if (amt <= 0) continue;
@@ -763,7 +805,6 @@
 
           if (isNaN(amt) || amt <= 0) continue;
 
-          // Filter by selected Month and Year
           const parsedD = parseTransactionDate(rawDate);
           if (parsedD) {
             if (parsedD.month !== targetMonth || parsedD.year !== targetYear) {
@@ -775,12 +816,10 @@
           processedForMonth++;
           const uDesc = desc.toUpperCase();
 
-          // Skip credit card payment transfers
           if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
             continue;
           }
 
-          // Check if travel charge for interactive review
           const isTravel = travelKeywords.some(k => uDesc.includes(k));
           if (isTravel) {
             const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
@@ -796,58 +835,44 @@
             continue;
           }
 
-          // --- ROBUST TWO-TIER CLASSIFICATION ENGINE ---
           let cat = null;
 
-          // 1. Giving & Tithe
           if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
             cat = 'giving';
-          }
-          // 2. Gas & Fuel
+          } 
           else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG') || uDesc.includes('N1 BLONDUOSI') || uDesc.includes('OB ADALGOTU') || uDesc.includes('OLIS ') || uDesc.includes('SHELL') || uDesc.includes('CHEVRON') || uDesc.includes('CONOCO')) {
             cat = 'gas';
-          }
-          // 3. Groceries (Includes Costco Whse, Royal Crest, Specialty Grocery)
+          } 
           else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY') || uDesc.includes('COSTCO WHSE') || uDesc.includes('KJORBUDIN') || uDesc.includes('KRAMBUDIN') || uDesc.includes('KRONAN')) {
             cat = 'groceries';
-          }
-          // 4. Stephanie Personal (Boutiques, Erin Drew, Target, Etsy)
+          } 
           else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA') || uDesc.includes('ETSY') || uDesc.includes('MODODOC') || uDesc.includes('KADLIN') || uDesc.includes('PARIS MARKET') || uDesc.includes('GARN I GANGI') || uDesc.includes('BLODBERG') || uDesc.includes('PENNINN') || uDesc.includes('PATI DE ST BARTH')) {
             cat = 'stephanie';
-          }
-          // 5. Brian Personal & Outdoor Gear
+          } 
           else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE') || uDesc.includes('SP MY MEDIC')) {
             cat = 'brian';
-          }
-          // 6. Grooming, Car Washes & Tolls
+          } 
           else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD') || uDesc.includes('PARKING') || uDesc.includes('PRKG')) {
             cat = 'grooming_auto';
-          }
-          // 7. Pet Care & Kennel
+          } 
           else if (uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
             cat = 'pet_care';
-          }
-          // 8. Interquest Liquors
+          } 
           else if (uDesc.includes('INTERQUEST LIQUOR')) {
             cat = 'liquor';
-          }
-          // 9. Subscriptions (Apple, Spot, Ting, etc.)
+          } 
           else if (uDesc.includes('APPLE.COM') || uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY') || uDesc.includes('MLB.TV') || uDesc.includes('MICROSOFT')) {
             cat = 'monthly_subs';
-          }
-          // 10. Health & Wellness (Jardbodin, UCHealth, Clinics)
+          } 
           else if (uDesc.includes('JARDBODIN') || uDesc.includes('UCHEALTH') || uDesc.includes('PENRAD') || uDesc.includes('EYE CLINIC') || uDesc.includes('CLINIC') || uDesc.includes('HOSPITAL') || uDesc.includes('DENTAL')) {
             cat = 'health_well';
-          }
-          // 11. Home Supplies
+          } 
           else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
             cat = 'home';
-          }
-          // 12. Dining & Cafes (Broad local + international terms)
+          } 
           else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('KAFFI') || uDesc.includes('BAKARI') || uDesc.includes('BAKERY') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('SBARRO') || uDesc.includes('BREWING') || uDesc.includes('STRIKID') || uDesc.includes('KETILKAFFI') || uDesc.includes('FISH CHIPS') || uDesc.includes('VOGAR') || uDesc.includes('SYSTRAKAFFI') || uDesc.includes('ELDSTO') || uDesc.includes('LUCALI') || uDesc.includes('MY NEIGHBOR FELIX') || uDesc.includes('LANNA THAI') || uDesc.includes('COFFEE')) {
             cat = 'food_drink';
-          }
-          // 13. Checking Debits
+          } 
           else if (uDesc.includes('FREEDOM') && uDesc.includes('MTG')) {
             cat = 'mortgage';
           } else if (uDesc.includes('USAA LOAN')) {
@@ -870,24 +895,15 @@
             cat = 'flying_horse';
           }
 
-          // TIER 2: Secondary Fallback to Bank-Assigned Category Column
           if (!cat && bankCategory) {
-            if (bankCategory.includes('FOOD') || bankCategory.includes('DINING')) {
-              cat = 'food_drink';
-            } else if (bankCategory.includes('GAS')) {
-              cat = 'gas';
-            } else if (bankCategory.includes('GROCER')) {
-              cat = 'groceries';
-            } else if (bankCategory.includes('HEALTH') || bankCategory.includes('WELLNESS')) {
-              cat = 'health_well';
-            } else if (bankCategory.includes('SHOPPING')) {
-              cat = 'stephanie'; // Default discretionary shopping to Stephanie
-            } else if (bankCategory.includes('BILLS') || bankCategory.includes('UTILITIES')) {
-              cat = 'monthly_subs';
-            }
+            if (bankCategory.includes('FOOD') || bankCategory.includes('DINING')) cat = 'food_drink';
+            else if (bankCategory.includes('GAS')) cat = 'gas';
+            else if (bankCategory.includes('GROCER')) cat = 'groceries';
+            else if (bankCategory.includes('HEALTH') || bankCategory.includes('WELLNESS')) cat = 'health_well';
+            else if (bankCategory.includes('SHOPPING')) cat = 'stephanie';
+            else if (bankCategory.includes('BILLS') || bankCategory.includes('UTILITIES')) cat = 'monthly_subs';
           }
 
-          // Final fallback
           if (!cat) cat = 'ent_misc';
 
           if (stagedSpendMap[cat] !== undefined) {
@@ -936,7 +952,7 @@
                 🏢 Work ER
               </button>
               <button onclick="setTravelType(${idx}, 'personal')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${!isWork ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
-                🌴 Personal
+                🌴 Personal Travel
               </button>
             </div>
           </div>
@@ -960,13 +976,14 @@
           addedWorkER += t.amount;
         } else {
           addedPersonalTravel += t.amount;
-          if (!stagedCategoryTransactions['ent_misc']) stagedCategoryTransactions['ent_misc'] = [];
-          stagedCategoryTransactions['ent_misc'].push({ date: t.date, desc: t.desc, amount: t.amount, member: t.member });
+          // Route strictly into dedicated Travel Category
+          if (!stagedCategoryTransactions['travel']) stagedCategoryTransactions['travel'] = [];
+          stagedCategoryTransactions['travel'].push({ date: t.date, desc: t.desc, amount: t.amount, member: t.member });
         }
       });
 
-      if (stagedSpendMap['ent_misc'] !== undefined) {
-        stagedSpendMap['ent_misc'] += addedPersonalTravel;
+      if (stagedSpendMap['travel'] !== undefined) {
+        stagedSpendMap['travel'] += addedPersonalTravel;
       }
 
       const overwrite = document.getElementById('overwriteSpendChk').checked;
