@@ -11,120 +11,132 @@
   <title>2026 Budget & Cash Flow Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 font-sans antialiased select-none">
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-28 font-sans antialiased select-none">
 
-  <!-- Mobile Header -->
-  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-md flex justify-between items-center">
+  <!-- Mobile App Header -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 py-3 shadow-lg flex justify-between items-center">
     <div>
-      <h1 class="text-base font-bold text-emerald-400 leading-tight">2026 Budget & Cash Flow</h1>
-      <p class="text-[11px] text-slate-400">AMEX · Chase · USAA Checking</p>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <h1 class="text-sm font-bold text-white tracking-wide">Cash Flow Command</h1>
+      </div>
+      <p class="text-[10px] text-slate-400 pl-4 font-mono">AMEX · Chase · USAA Checking</p>
     </div>
     <div class="flex items-center gap-2">
-      <button onclick="resetToStatementData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
-        Reload Data
+      <button onclick="resetToStatementData()" class="bg-slate-800/90 hover:bg-slate-700 text-slate-300 text-[11px] px-2.5 py-1.5 rounded-lg border border-slate-700 transition active:scale-95">
+        Reload
       </button>
-      <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow flex items-center gap-1">
-        <span>+ Batch Upload</span>
+      <button onclick="openModal('uploadModal')" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-xs px-3 py-1.5 rounded-lg font-medium transition shadow-md shadow-indigo-950/50 flex items-center gap-1.5">
+        <span>+ Batch CSV</span>
       </button>
     </div>
   </header>
 
-  <main class="p-4 space-y-4 max-w-lg mx-auto">
+  <main class="p-4 space-y-5 max-w-lg mx-auto">
 
-    <!-- Pre-Payday Checking & Card Payoff Coverage Calculator -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+    <!-- SECTION 1: Checking Liquidity & Payoff Coverage (Emerald Card Theme) -->
+    <section class="bg-gradient-to-b from-slate-900 to-emerald-950/20 border-l-4 border-l-emerald-500 border-y border-r border-slate-800/80 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex justify-between items-center">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Checking Balance & Card Coverage</h2>
-        <span id="nextPaydayBadge" class="text-[11px] font-medium text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/80">Next Payday: --</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs">💵</span>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-emerald-300">Checking Balance & Payoff Coverage</h2>
+        </div>
+        <span id="nextPaydayBadge" class="text-[10px] font-semibold text-emerald-300 bg-emerald-950/90 px-2 py-0.5 rounded-md border border-emerald-800/80">Next Payday: --</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-[11px] text-slate-400 mb-1">Current Checking Bal ($)</label>
-          <input type="number" step="0.01" id="checkingBalInput" oninput="calcCheckingCoverage()" placeholder="8000.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono text-emerald-400 font-bold" />
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+          <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Current Checking Bal</label>
+          <input type="number" step="0.01" id="checkingBalInput" oninput="calcCheckingCoverage()" placeholder="8000.00" class="w-full bg-transparent text-sm text-right focus:outline-none font-mono text-emerald-400 font-bold" />
         </div>
-        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-right">
-          <span class="text-[10px] text-slate-500 block">Upcoming Non-Card Debits</span>
-          <span id="upcomingDebitsDisplay" class="text-xs font-mono font-semibold text-rose-400">-$0.00</span>
+        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 text-right">
+          <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Upcoming Debits Pre-Pay</span>
+          <span id="upcomingDebitsDisplay" class="text-sm font-mono font-bold text-rose-400">-$0.00</span>
         </div>
       </div>
 
-      <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2 text-xs">
+      <div class="p-3 bg-slate-950/90 rounded-xl border border-emerald-900/40 space-y-2 text-xs">
         <div class="flex justify-between">
-          <span class="text-slate-400">Available to Cover Cards Prior to Payday:</span>
-          <span id="availBeforePayday" class="font-mono font-bold text-slate-200">$0.00</span>
+          <span class="text-slate-400">Available Pre-Payday for Cards:</span>
+          <span id="availBeforePayday" class="font-mono font-bold text-slate-100">$0.00</span>
         </div>
         <div class="flex justify-between">
-          <span class="text-slate-400">Current Adjusted Card Payoff Needed:</span>
-          <span id="neededCardPayoff" class="font-mono text-amber-300">$0.00</span>
+          <span class="text-slate-400">Net Card Burn to Settle:</span>
+          <span id="neededCardPayoff" class="font-mono font-bold text-amber-300">$0.00</span>
         </div>
-        <div class="pt-2 border-t border-slate-800/80 flex justify-between items-center">
-          <span class="font-semibold text-slate-300">Coverage Verdict:</span>
-          <span id="coverageVerdict" class="font-mono font-bold text-xs px-2 py-0.5 rounded">Calculating...</span>
+        <div class="pt-2 border-t border-slate-800 flex justify-between items-center">
+          <span class="font-semibold text-slate-300">Coverage Status:</span>
+          <span id="coverageVerdict" class="font-mono font-bold text-xs px-2.5 py-1 rounded-md">Calculating...</span>
         </div>
       </div>
     </section>
 
-    <!-- Credit Card Burn Calculator -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg">
-      <div class="flex justify-between items-center mb-3">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Credit Card Burn Calculator</h2>
-        <span id="cycleLabel" class="text-[11px] font-medium text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/80">Cycle: --%</span>
+    <!-- SECTION 2: Credit Card Burn Calculator (Amber Warning Theme) -->
+    <section class="bg-gradient-to-b from-slate-900 to-amber-950/20 border-l-4 border-l-amber-500 border-y border-r border-slate-800/80 rounded-2xl p-4 shadow-xl space-y-3">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="text-xs">💳</span>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-amber-300">Card Utilization & Float Burn</h2>
+        </div>
+        <span id="cycleLabel" class="text-[10px] font-semibold text-amber-300 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-800/80">Cycle: --%</span>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 mb-3">
-        <div>
-          <label class="block text-[11px] text-slate-400 mb-1">AMEX Bal ($)</label>
-          <input type="number" step="0.01" id="amexInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono" />
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800">
+          <label class="block text-[10px] text-slate-400 mb-0.5 font-medium">AMEX Bal ($)</label>
+          <input type="number" step="0.01" id="amexInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-transparent text-xs text-right focus:outline-none font-mono text-slate-100 font-semibold" />
         </div>
-        <div>
-          <label class="block text-[11px] text-slate-400 mb-1">Chase Bal ($)</label>
-          <input type="number" step="0.01" id="chaseInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono" />
+        <div class="bg-slate-950/80 p-2 rounded-xl border border-slate-800">
+          <label class="block text-[10px] text-slate-400 mb-0.5 font-medium">Chase Bal ($)</label>
+          <input type="number" step="0.01" id="chaseInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-transparent text-xs text-right focus:outline-none font-mono text-slate-100 font-semibold" />
         </div>
-        <div>
-          <label class="block text-[11px] text-amber-400 mb-1">Work ER ($)</label>
-          <input type="number" step="0.01" id="erInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right text-amber-300 focus:border-amber-500 focus:outline-none font-mono" />
+        <div class="bg-slate-950/80 p-2 rounded-xl border border-amber-900/60">
+          <label class="block text-[10px] text-amber-400 mb-0.5 font-medium">Work ER ($)</label>
+          <input type="number" step="0.01" id="erInput" oninput="calcSpending()" placeholder="0.00" class="w-full bg-transparent text-xs text-right text-amber-300 focus:outline-none font-mono font-bold" />
         </div>
       </div>
 
-      <div class="bg-slate-950 rounded-xl p-3 border border-slate-800/80 space-y-2">
+      <div class="bg-slate-950/90 rounded-xl p-3 border border-amber-900/40 space-y-2.5">
         <div class="flex justify-between text-xs">
-          <span class="text-slate-400">Net Organic Burn:</span>
-          <span id="adjustedSpend" class="font-bold text-slate-200 font-mono">$0.00</span>
+          <span class="text-slate-400">Net Organic Spending:</span>
+          <span id="adjustedSpend" class="font-bold text-slate-100 font-mono">$0.00</span>
         </div>
         <div class="flex justify-between text-xs">
-          <span class="text-slate-400">Card Target Limit (<span id="modeLabel">Reality</span>):</span>
+          <span class="text-slate-400">Monthly Card Cap (<span id="modeLabel">Reality</span>):</span>
           <span id="targetCardLimit" class="text-slate-300 font-mono">$7,800.00 / mo</span>
         </div>
-        <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
           <div id="calcProgress" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
         </div>
-        <div class="flex justify-between text-xs">
-          <span id="spentPercent" class="font-semibold text-emerald-400">0.0% of Limit</span>
+        <div class="flex justify-between text-xs pt-0.5">
+          <span id="spentPercent" class="font-bold text-emerald-400">0.0% of Limit</span>
           <span id="overUnder" class="text-slate-400 font-mono">$7,800.00 remaining</span>
         </div>
       </div>
     </section>
 
-    <!-- Emergency Fund & Job-Loss Runway Card -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+    <!-- SECTION 3: Emergency Fund & Solvency Runway (Cyan / Blue Theme) -->
+    <section class="bg-gradient-to-b from-slate-900 to-cyan-950/20 border-l-4 border-l-cyan-500 border-y border-r border-slate-800/80 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex justify-between items-center">
-        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Emergency Fund & Runway</h2>
-        <span id="runwayPill" class="text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80">-- Months Runway</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs">🛡️</span>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-cyan-300">Emergency Fund & Job-Loss Runway</h2>
+        </div>
+        <span id="runwayPill" class="text-[10px] font-bold text-cyan-300 bg-cyan-950/90 px-2 py-0.5 rounded-md border border-cyan-800/80">-- Mo Runway</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <div>
-          <label class="block text-[11px] text-slate-400 mb-1">Savings Balance ($)</label>
-          <input type="number" step="100" id="efundInput" oninput="calcRunway()" placeholder="28000" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-sm text-right focus:border-indigo-500 focus:outline-none font-mono text-emerald-400 font-bold" />
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
+          <label class="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Savings Balance</label>
+          <input type="number" step="100" id="efundInput" oninput="calcRunway()" placeholder="28000" class="w-full bg-transparent text-sm text-right focus:outline-none font-mono text-cyan-400 font-bold" />
         </div>
-        <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 text-right">
-          <span class="text-[10px] text-slate-500 block">Monthly Shortfall (No Job)</span>
-          <span id="shortfallDisplay" class="text-xs font-mono font-semibold text-rose-400">-$6,320.38/mo</span>
+        <div class="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 text-right">
+          <span class="text-[10px] uppercase font-semibold text-slate-400 block mb-1">Net Monthly Shortfall</span>
+          <span id="shortfallDisplay" class="text-sm font-mono font-bold text-rose-400">-$6,320.38/mo</span>
         </div>
       </div>
 
-      <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+      <div class="p-3 bg-slate-950/90 rounded-xl border border-cyan-900/40 text-[11px] text-slate-400 space-y-1">
         <div class="flex justify-between">
           <span>Guaranteed Pension + VA Income:</span>
           <span class="font-mono text-slate-200">+$5,601.23 / mo</span>
@@ -133,55 +145,61 @@
           <span>Baseline Essential Expenses:</span>
           <span class="font-mono text-slate-200">-$11,921.61 / mo</span>
         </div>
-        <div class="flex justify-between border-t border-slate-800 pt-1 text-slate-300 font-medium">
-          <span>Net Needed from Savings:</span>
-          <span class="font-mono text-amber-400" id="netGapDisplay">$6,320.38 / mo</span>
+        <div class="flex justify-between border-t border-slate-800/80 pt-1 text-slate-200 font-medium">
+          <span>Net Needed from Savings (No Job):</span>
+          <span class="font-mono text-cyan-300 font-bold" id="netGapDisplay">$6,320.38 / mo</span>
         </div>
       </div>
     </section>
 
-    <!-- Budget Architecture Switcher -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-3 shadow-md flex items-center justify-between">
-      <div>
-        <span class="text-xs font-semibold text-slate-200 block">Target Architecture</span>
-        <span class="text-[10px] text-slate-400" id="modeSubtext">Showing Statement Reality Tuned Numbers</span>
-      </div>
-      <div class="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800">
-        <button onclick="setBudgetMode('plan')" id="btn-mode-plan" class="px-2.5 py-1 text-xs rounded-md font-semibold text-slate-400 hover:text-white transition">Plan Baseline</button>
-        <button onclick="setBudgetMode('reality')" id="btn-mode-reality" class="px-2.5 py-1 text-xs rounded-md font-semibold bg-indigo-600 text-white transition">Statement Reality</button>
-      </div>
-    </section>
-
-    <!-- Category Filter Controls -->
+    <!-- SECTION 4: Architecture Switcher & Category Tracking (Violet / Slate Theme) -->
     <section class="space-y-3">
-      <div class="flex items-center justify-between">
-        <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
-          <button onclick="filterCat('all')" id="btn-all" class="px-3 py-1 text-xs rounded-md font-medium bg-indigo-600 text-white transition">All</button>
-          <button onclick="filterCat('Essential')" id="btn-essential" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Essential</button>
-          <button onclick="filterCat('Discretionary')" id="btn-discretionary" class="px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition">Discretionary</button>
+      <!-- Target Switcher Header Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-slate-100 block">Target Architecture</span>
+          <span class="text-[10px] text-slate-400" id="modeSubtext">Showing Statement Reality Tuned Numbers</span>
         </div>
-        <span class="text-xs text-slate-500" id="catCount">-- Categories</span>
+        <div class="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800">
+          <button onclick="setBudgetMode('plan')" id="btn-mode-plan" class="px-2.5 py-1 text-xs rounded-lg font-semibold text-slate-400 hover:text-white transition">Plan</button>
+          <button onclick="setBudgetMode('reality')" id="btn-mode-reality" class="px-2.5 py-1 text-xs rounded-lg font-semibold bg-indigo-600 text-white transition">Reality</button>
+        </div>
       </div>
 
-      <!-- Category Progress Bars -->
+      <!-- Filters & Category Count -->
+      <div class="flex items-center justify-between px-1">
+        <div class="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800">
+          <button onclick="filterCat('all')" id="btn-all" class="px-3 py-1 text-xs rounded-lg font-semibold bg-indigo-600 text-white transition">All</button>
+          <button onclick="filterCat('Essential')" id="btn-essential" class="px-3 py-1 text-xs rounded-lg font-semibold text-slate-400 hover:text-white transition">Essential</button>
+          <button onclick="filterCat('Discretionary')" id="btn-discretionary" class="px-3 py-1 text-xs rounded-lg font-semibold text-slate-400 hover:text-white transition">Discretionary</button>
+        </div>
+        <span class="text-xs font-mono text-slate-400" id="catCount">-- Categories</span>
+      </div>
+
+      <!-- Category Progress Cards Container -->
       <div id="categoryContainer" class="space-y-2.5"></div>
     </section>
 
-    <!-- Checking Cash Flow Timeline & Remainder Callout -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg space-y-3">
+    <!-- SECTION 5: USAA Checking Calendar Flow (Deep Navy / Blue Theme) -->
+    <section class="bg-gradient-to-b from-slate-900 to-blue-950/20 border-l-4 border-l-blue-500 border-y border-r border-slate-800/80 rounded-2xl p-4 shadow-xl space-y-3">
       <div class="flex justify-between items-center">
-        <div>
-          <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">USAA Checking Flow (1st–28th)</h2>
-          <span class="text-[10px] text-slate-500">Past dates auto-checked</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs">📅</span>
+          <div>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-blue-300">USAA Checking Flow (1st–28th)</h2>
+            <span class="text-[10px] text-slate-400">Past calendar days marked settled</span>
+          </div>
         </div>
-        <button onclick="resetChecklistToCalendar()" class="text-[11px] text-indigo-400 hover:text-indigo-300">Sync to Day</button>
+        <button onclick="resetChecklistToCalendar()" class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 bg-blue-950/60 px-2.5 py-1 rounded-lg border border-blue-900 transition">
+          Sync to Day
+        </button>
       </div>
 
-      <!-- Outstanding Checking Metric Callout -->
-      <div class="bg-slate-950 border border-indigo-900/60 rounded-xl p-3 flex justify-between items-center">
+      <!-- Outstanding Checking Debits Remainder Callout -->
+      <div class="bg-slate-950/90 border border-blue-900/40 rounded-xl p-3 flex justify-between items-center shadow-inner">
         <div>
-          <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-semibold block">Remaining Checking Debits</span>
-          <span class="text-[10px] text-slate-500">Excludes credit card payoffs</span>
+          <span class="text-[10px] uppercase tracking-wider text-blue-300 font-bold block">Remaining Checking Debits</span>
+          <span class="text-[10px] text-slate-400">Excludes credit card payoffs</span>
         </div>
         <span id="remainderCheckingDisplay" class="font-mono font-bold text-base text-rose-400">-$0.00</span>
       </div>
@@ -191,13 +209,13 @@
   </main>
 
   <!-- Step 1: Multi-File Batch CSV Upload Modal -->
-  <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="uploadModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
-      <div class="flex justify-between items-center">
-        <h3 class="font-bold text-sm text-slate-200">Batch Ingest Statement CSVs</h3>
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-sm text-slate-100">Batch Ingest Statement CSVs</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select statement files together. Checking deposits and transfers are automatically ignored.</p>
+      <p class="text-xs text-slate-400">Select statement files together. Checking deposits and internal transfers are automatically ignored.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -238,9 +256,9 @@
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeModal('uploadModal')" class="px-3 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
-        <button onclick="startBatchCSVIngestion()" class="px-3 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Start Batch Scan</button>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+        <button onclick="closeModal('uploadModal')" class="px-3.5 py-1.5 text-xs rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cancel</button>
+        <button onclick="startBatchCSVIngestion()" class="px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium">Start Batch Scan</button>
       </div>
     </div>
   </div>
@@ -250,7 +268,7 @@
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div>
         <div class="flex justify-between items-center">
-          <h3 class="font-bold text-sm text-slate-200" id="fileQueueBadge">File 1 of 1: Statement.csv</h3>
+          <h3 class="font-bold text-sm text-slate-100" id="fileQueueBadge">File 1 of 1: Statement.csv</h3>
           <span class="text-[10px] bg-indigo-950 border border-indigo-800 text-indigo-300 px-2 py-0.5 rounded font-mono" id="fileQueueCounter">1 / 1</span>
         </div>
         <p class="text-xs text-slate-400 mt-1">Review travel charges from this specific statement before advancing to the next file.</p>
@@ -270,7 +288,7 @@
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-3 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
         <div>
-          <h3 id="drillTitle" class="font-bold text-sm text-slate-200">Category Transactions</h3>
+          <h3 id="drillTitle" class="font-bold text-sm text-slate-100">Category Transactions</h3>
           <span id="drillSubtitle" class="text-[10px] text-slate-400">Month-to-Date Items</span>
         </div>
         <button onclick="closeModal('drillDownModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
@@ -279,7 +297,7 @@
       <div id="drillTransactionsList" class="space-y-2 max-h-72 overflow-y-auto pr-1"></div>
 
       <div class="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
-        <span id="drillTotalCount" class="text-slate-500">0 transactions</span>
+        <span id="drillTotalCount" class="text-slate-400">0 transactions</span>
         <span id="drillTotalSum" class="font-mono font-bold text-emerald-400">$0.00 Total</span>
       </div>
     </div>
@@ -458,10 +476,10 @@
 
       if (diff >= 0) {
         verdict.innerText = `Fully Covered (+$${diff.toLocaleString('en-US', {maximumFractionDigits: 0})} Surplus)`;
-        verdict.className = "font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800";
+        verdict.className = "font-mono font-bold text-xs px-2.5 py-1 rounded-md bg-emerald-950 text-emerald-400 border border-emerald-800";
       } else {
         verdict.innerText = `Shortfall (-$${Math.abs(diff).toLocaleString('en-US', {maximumFractionDigits: 0})} Deficit)`;
-        verdict.className = "font-mono font-bold text-xs px-2 py-0.5 rounded bg-rose-950/80 text-rose-400 border border-rose-800";
+        verdict.className = "font-mono font-bold text-xs px-2.5 py-1 rounded-md bg-rose-950 text-rose-400 border border-rose-800";
       }
     }
 
@@ -478,13 +496,13 @@
       document.getElementById('netGapDisplay').innerText = `$${netShortfall.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} / mo`;
       
       const pill = document.getElementById('runwayPill');
-      pill.innerText = `${runwayMonths.toFixed(2)} Months Runway`;
+      pill.innerText = `${runwayMonths.toFixed(2)} Mo Runway`;
       if (runwayMonths >= 6) {
-        pill.className = "text-[11px] font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800/80";
+        pill.className = "text-[10px] font-bold text-emerald-300 bg-emerald-950/90 px-2 py-0.5 rounded-md border border-emerald-800/80";
       } else if (runwayMonths >= 3) {
-        pill.className = "text-[11px] font-bold text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800/80";
+        pill.className = "text-[10px] font-bold text-amber-300 bg-amber-950/90 px-2 py-0.5 rounded-md border border-amber-800/80";
       } else {
-        pill.className = "text-[11px] font-bold text-rose-400 bg-rose-950/80 px-2 py-0.5 rounded border border-rose-800/80";
+        pill.className = "text-[10px] font-bold text-rose-300 bg-rose-950/90 px-2 py-0.5 rounded-md border border-rose-800/80";
       }
     }
 
@@ -494,12 +512,12 @@
 
       const isPlan = mode === 'plan';
       document.getElementById('btn-mode-plan').className = isPlan 
-        ? 'px-2.5 py-1 text-xs rounded-md font-semibold bg-emerald-600 text-white transition' 
-        : 'px-2.5 py-1 text-xs rounded-md font-semibold text-slate-400 hover:text-white transition';
+        ? 'px-2.5 py-1 text-xs rounded-lg font-semibold bg-indigo-600 text-white transition' 
+        : 'px-2.5 py-1 text-xs rounded-lg font-semibold text-slate-400 hover:text-white transition';
       
       document.getElementById('btn-mode-reality').className = !isPlan 
-        ? 'px-2.5 py-1 text-xs rounded-md font-semibold bg-indigo-600 text-white transition' 
-        : 'px-2.5 py-1 text-xs rounded-md font-semibold text-slate-400 hover:text-white transition';
+        ? 'px-2.5 py-1 text-xs rounded-lg font-semibold bg-indigo-600 text-white transition' 
+        : 'px-2.5 py-1 text-xs rounded-lg font-semibold text-slate-400 hover:text-white transition';
 
       document.getElementById('modeLabel').innerText = isPlan ? 'Plan' : 'Reality';
       document.getElementById('modeSubtext').innerText = isPlan 
@@ -565,31 +583,31 @@
 
       filtered.forEach((c) => {
         const pct = Math.min(100, (c.spent / c.target) * 100);
-        const color = pct > 100 ? 'bg-rose-500' : (pct > 85 ? 'bg-amber-500' : 'bg-indigo-500');
+        const color = pct > 100 ? 'bg-rose-500' : (pct > 85 ? 'bg-amber-500' : (c.type === 'Essential' ? 'bg-emerald-500' : 'bg-violet-500'));
         const badge = c.type === 'Essential' 
-          ? 'text-emerald-400 bg-emerald-950/70 border-emerald-800' 
-          : 'text-purple-400 bg-purple-950/70 border-purple-800';
+          ? 'text-emerald-400 bg-emerald-950/80 border-emerald-800' 
+          : 'text-violet-400 bg-violet-950/80 border-violet-800';
 
         container.innerHTML += `
-          <div onclick="drillCategory('${c.id}')" class="bg-slate-900 border border-slate-800/90 rounded-xl p-3 shadow-sm active:bg-slate-850 cursor-pointer hover:border-slate-700 transition">
+          <div onclick="drillCategory('${c.id}')" class="bg-slate-900 border border-slate-800/90 rounded-xl p-3 shadow-md active:scale-[0.99] cursor-pointer hover:border-slate-700 transition">
             <div class="flex justify-between items-start mb-1.5">
               <div>
-                <span class="text-xs font-semibold text-slate-200">${c.name}</span>
-                <span class="text-[9px] px-1.5 py-0.5 ml-1 rounded border ${badge}">${c.type}</span>
-                <span class="text-[10px] text-slate-400 block">${c.note || ''}</span>
+                <span class="text-xs font-bold text-slate-100">${c.name}</span>
+                <span class="text-[9px] font-semibold px-1.5 py-0.5 ml-1 rounded-md border ${badge}">${c.type}</span>
+                <span class="text-[10px] text-slate-400 block mt-0.5">${c.note || ''}</span>
               </div>
               <div class="flex items-center space-x-1 text-xs font-mono" onclick="event.stopPropagation()">
                 <span class="text-slate-400">$</span>
-                <input type="number" step="0.01" value="${c.spent.toFixed(2)}" onchange="updateCatSpend('${c.id}', this.value)" class="w-16 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-slate-200 focus:outline-none focus:border-indigo-500" />
+                <input type="number" step="0.01" value="${c.spent.toFixed(2)}" onchange="updateCatSpend('${c.id}', this.value)" class="w-16 bg-slate-950 border border-slate-800 rounded px-1 py-0.5 text-right text-slate-100 focus:outline-none focus:border-indigo-500 font-semibold" />
                 <span class="text-slate-500">/ $${c.target.toFixed(0)}</span>
               </div>
             </div>
-            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-1">
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden mb-1 border border-slate-800/60">
               <div class="${color} h-full transition-all duration-300" style="width: ${pct}%"></div>
             </div>
-            <div class="flex justify-between text-[11px] text-slate-500 font-sans">
-              <span>Account: ${c.source} · <span class="text-indigo-400 underline">Tap to view</span></span>
-              <span>${pct.toFixed(0)}%</span>
+            <div class="flex justify-between text-[11px] text-slate-400 font-sans">
+              <span>Account: <strong class="text-slate-300">${c.source}</strong> · <span class="text-indigo-400 underline">Tap to view</span></span>
+              <span class="font-mono font-medium">${pct.toFixed(0)}%</span>
             </div>
           </div>
         `;
@@ -633,12 +651,12 @@
         txs.forEach(t => {
           sum += t.amount;
           list.innerHTML += `
-            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 text-xs">
+            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
               <div>
                 <span class="font-medium text-slate-200 block leading-tight">${t.desc}</span>
                 <span class="text-[10px] text-slate-500">${t.date} ${t.member ? '· ' + t.member : ''}</span>
               </div>
-              <span class="font-mono font-bold text-slate-200 ml-2">-$${t.amount.toFixed(2)}</span>
+              <span class="font-mono font-bold text-slate-100 ml-2">-$${t.amount.toFixed(2)}</span>
             </div>
           `;
         });
@@ -650,7 +668,7 @@
     }
 
     function resetToStatementData() {
-      if (confirm("Reload baseline statement numbers and reset any manual imports?")) {
+      if (confirm("Reload baseline statement numbers and clear manual imports?")) {
         localStorage.removeItem('budget_spend_map');
         localStorage.removeItem('category_transactions_map');
         setBudgetMode(currentMode, false);
@@ -659,9 +677,9 @@
 
     function filterCat(type) {
       ['all', 'essential', 'discretionary'].forEach(t => {
-        document.getElementById(`btn-${t}`).className = 'px-3 py-1 text-xs rounded-md font-medium text-slate-400 hover:text-white transition';
+        document.getElementById(`btn-${t}`).className = 'px-3 py-1 text-xs rounded-lg font-semibold text-slate-400 hover:text-white transition';
       });
-      document.getElementById(`btn-${type.toLowerCase()}`).className = 'px-3 py-1 text-xs rounded-md font-medium bg-indigo-600 text-white transition';
+      document.getElementById(`btn-${type.toLowerCase()}`).className = 'px-3 py-1 text-xs rounded-lg font-semibold bg-indigo-600 text-white transition';
       renderCategories(type === 'all' ? 'all' : (type === 'Essential' ? 'Essential' : 'Discretionary'));
     }
 
@@ -680,7 +698,7 @@
               <input type="checkbox" id="chk-${idx}" onchange="toggleCheck(${idx})" ${checked ? 'checked' : ''} class="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-0 cursor-pointer">
               <label for="chk-${idx}" class="text-slate-300 font-medium cursor-pointer ${checked ? 'line-through text-slate-500' : ''}">Day ${item.day}: ${item.name}</label>
             </div>
-            <span class="font-mono ${item.isCard ? 'text-indigo-400 font-bold' : (checked ? 'text-slate-600 line-through' : 'text-slate-300 font-semibold')}">-$${amount.toFixed(2)}</span>
+            <span class="font-mono ${item.isCard ? 'text-indigo-400 font-bold' : (checked ? 'text-slate-600 line-through' : 'text-slate-200 font-semibold')}">-$${amount.toFixed(2)}</span>
           </div>
         `;
       });
@@ -715,7 +733,7 @@
       return null;
     }
 
-    // --- SEQUENTIAL BATCH INGESTION (CONFIRM EACH FILE SEPARATELY) ---
+    // Sequential batch ingestion
     async function startBatchCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -794,7 +812,6 @@
 
       const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
       const isAmex = lines[0].toLowerCase().includes('card member') || lines[0].toLowerCase().includes('account #');
-      const isChecking = !isChase && !isAmex; // USAA checking
 
       const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR', 'AIRLINE'];
       const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
@@ -819,23 +836,17 @@
 
         let amt = 0;
 
-        // SIGN & ACCOUNT RULES:
+        // SIGN & ACCOUNT RULES
         if (isChase) {
-          // On Chase credit card, charges are negative numbers. Positive numbers are payments/refunds.
           if (rawAmt < 0) amt = Math.abs(rawAmt);
-          else continue; // skip payments
+          else continue;
         } else if (isAmex) {
-          // On AMEX credit card, charges are positive numbers. Negative numbers are payments/credits.
           if (rawAmt > 0) amt = rawAmt;
-          else continue; // skip payments
+          else continue;
         } else {
-          // On USAA Checking: Negative numbers are outflows/debits. Positive numbers are DEPOSITS / INFLOWS!
-          // NEVER treat deposits (MTSI paycheck, pension, VA) as expenses!
-          if (rawAmt < 0) {
-            amt = Math.abs(rawAmt);
-          } else {
-            continue; // Skip all paycheck deposits, interest, and credit inflows
-          }
+          // USAA Checking
+          if (rawAmt < 0) amt = Math.abs(rawAmt);
+          else continue; // Skip deposits, pensions, payroll
         }
 
         if (amt <= 0) continue;
@@ -847,7 +858,7 @@
 
         const uDesc = desc.toUpperCase();
 
-        // Skip internal transfers, payroll, and credit card payoffs
+        // Skip internal transfers and credit card payoffs
         if (
           uDesc.includes('MOBILE PAYMENT') || 
           uDesc.includes('PAYMENT THANK YOU') || 
@@ -878,7 +889,6 @@
           continue;
         }
 
-        // Category Classification
         let cat = null;
 
         if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
@@ -976,7 +986,6 @@
       const fileData = batchFileQueue[index];
       currentFileTravelItems = fileData.travelItems;
 
-      // Merge standard living expenses into the accumulator
       for (let cId in fileData.spendMap) {
         if (!stagedSpendMap[cId]) stagedSpendMap[cId] = 0;
         stagedSpendMap[cId] += fileData.spendMap[cId];
@@ -985,7 +994,6 @@
         stagedCategoryTransactions[cId] = stagedCategoryTransactions[cId].concat(fileData.txMap[cId]);
       }
 
-      // If travel transactions are present, prompt confirmation
       if (currentFileTravelItems.length > 0) {
         document.getElementById('fileQueueBadge').innerText = `File ${index + 1}: ${fileData.fileName}`;
         document.getElementById('fileQueueCounter').innerText = `${index + 1} / ${batchFileQueue.length}`;
@@ -994,7 +1002,6 @@
         renderCurrentFileTravelQueue();
         openModal('travelAssignModal');
       } else {
-        // No travel items in this file, move directly to next file
         currentBatchIndex++;
         showFileTravelModal(currentBatchIndex);
       }
@@ -1013,13 +1020,13 @@
                 <p class="text-xs font-semibold text-slate-200 leading-snug">${t.desc}</p>
                 <span class="text-[10px] text-slate-500">${t.date} ${t.member ? '· ' + t.member : ''}</span>
               </div>
-              <span class="text-xs font-mono font-bold text-slate-200 ml-2">$${t.amount.toFixed(2)}</span>
+              <span class="text-xs font-mono font-bold text-slate-100 ml-2">$${t.amount.toFixed(2)}</span>
             </div>
             <div class="flex gap-2 pt-1">
-              <button onclick="setFileTravelType(${idx}, 'work')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${isWork ? 'bg-amber-500/20 text-amber-300 border-amber-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
+              <button onclick="setFileTravelType(${idx}, 'work')" class="flex-1 py-1 px-2 rounded-lg text-xs font-semibold border transition ${isWork ? 'bg-amber-500/20 text-amber-300 border-amber-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
                 🏢 Work ER
               </button>
-              <button onclick="setFileTravelType(${idx}, 'personal')" class="flex-1 py-1 px-2 rounded-lg text-xs font-medium border transition ${!isWork ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
+              <button onclick="setFileTravelType(${idx}, 'personal')" class="flex-1 py-1 px-2 rounded-lg text-xs font-semibold border transition ${!isWork ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'}">
                 🌴 Personal Travel
               </button>
             </div>
@@ -1053,7 +1060,6 @@
         stagedSpendMap['travel'] += addedPersonalTravel;
       }
 
-      // Add this file's work ER to the top Work ER float input
       const currentER = parseFloat(document.getElementById('erInput').value) || 0;
       const newER = currentER + addedWorkER;
       document.getElementById('erInput').value = newER.toFixed(2);
@@ -1061,7 +1067,6 @@
 
       closeModal('travelAssignModal');
 
-      // Advance to next file in batch
       currentBatchIndex++;
       showFileTravelModal(currentBatchIndex);
     }
