@@ -183,7 +183,7 @@
         <h3 class="font-bold text-sm text-slate-200">Ingest Statement CSV</h3>
         <button onclick="closeModal('uploadModal')" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
       </div>
-      <p class="text-xs text-slate-400">Select an export file from USAA, AMEX, or Chase. Column headers are automatically detected.</p>
+      <p class="text-xs text-slate-400">Select an export file from USAA, AMEX, or Chase. Column headers and bank categories are automatically read.</p>
 
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
@@ -236,7 +236,7 @@
     <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
       <div>
         <h3 class="font-bold text-sm text-slate-200">Assign Monthly Travel & Flights</h3>
-        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal entertainment.</p>
+        <p class="text-xs text-slate-400 mt-1">Tap <strong class="text-amber-300">Work ER</strong> to add to Work Float, or <strong class="text-indigo-400">Personal</strong> to route to personal travel.</p>
       </div>
 
       <div id="travelQueueList" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
@@ -270,17 +270,17 @@
 
   <script>
     const planCategories = [
-      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Checking", note: "King Soopers, Trader Joe's" },
-      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Coffee, Takeout" },
-      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, King Soopers Fuel, Costco" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 823.94, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Target, Erin Drew" },
+      { id: "groceries", name: "Groceries", target: 1000.00, spent: 327.25, type: "Essential", source: "AMEX/Chase/Checking", note: "King Soopers, Trader Joe's, Costco Whse" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Dining, Cafes, Coffee, Takeout" },
+      { id: "gas", name: "Gas / Fuel", target: 300.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "Costco Gas, 7-Eleven, KS Fuel, N1" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1000.00, spent: 823.94, type: "Discretionary", source: "AMEX/Chase", note: "Anthro, Target, Erin Drew, Etsy" },
       { id: "brian", name: "Brian Personal", target: 1000.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Gear, Outdoor, Fly Fishing" },
       { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
-      { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, HBO Max $19, Apple" },
+      { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX/Chase", note: "Spot, Ting, Apple, HBO Max, Peacock" },
       { id: "annual_subs", name: "Annual Subscriptions (Amortized)", target: 151.11, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Costco, Prime, Arlo, Microsoft" },
-      { id: "ent_misc", name: "Entertainment & Travel", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
+      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 1000.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Local tickets, movies, postage" },
       { id: "home", name: "Home", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Supplies" },
-      { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays & Wellness" },
+      { id: "health_well", name: "Health & Wellness", target: 50.00, spent: 0.00, type: "Essential", source: "AMEX/Chase", note: "Copays, Jardbodin, Clinics" },
 
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
@@ -296,20 +296,20 @@
     ];
 
     const realityCategories = [
-      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase", note: "King Soopers ($700) + TJs ($400) + Ranch ($150)" },
-      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland dining" },
-      { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "7-Eleven, KS Fuel, Costco Gas" },
-      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 823.94, type: "Discretionary", source: "AMEX", note: "Anthro, Free People, Alo, Target, Erin Drew" },
+      { id: "groceries", name: "Groceries (Store & Ranch)", target: 1350.00, spent: 327.25, type: "Essential", source: "AMEX/Chase/Checking", note: "King Soopers ($700) + TJs ($400) + Costco Whse" },
+      { id: "food_drink", name: "Food & Drink", target: 850.00, spent: 700.19, type: "Discretionary", source: "AMEX/Chase", note: "Local dining + Iceland cafes & dining" },
+      { id: "gas", name: "Gas / Fuel (All Cards)", target: 475.00, spent: 317.29, type: "Essential", source: "AMEX/Chase", note: "Costco Gas, 7-Eleven, KS Fuel, Orkan, N1" },
+      { id: "stephanie", name: "Stephanie Personal", target: 1750.00, spent: 823.94, type: "Discretionary", source: "AMEX/Chase", note: "Anthro, Target, Erin Drew, Etsy, Kadlin" },
       { id: "brian", name: "Brian Personal & Gear", target: 1250.00, spent: 139.76, type: "Discretionary", source: "AMEX", note: "Outdoor, Durston, Fly Fishing" },
       { id: "giving", name: "Giving & Tithe", target: 508.00, spent: 206.65, type: "Essential", source: "AMEX", note: "Woodmen $300, Rescue $104, Tebow $104" },
       { id: "grooming_auto", name: "Car Washes & Tolls", target: 260.00, spent: 54.00, type: "Essential", source: "AMEX", note: "Club Car Wash ($72), Sport Clips ($90), E-470" },
       { id: "pet_care", name: "Pet Care & Kennel", target: 100.00, spent: 0.00, type: "Essential", source: "AMEX/Chase", note: "Jackson Creek Kennel & Vet" },
       { id: "liquor", name: "Interquest Liquors", target: 180.00, spent: 47.31, type: "Discretionary", source: "AMEX", note: "2-3 visits per month" },
       { id: "home", name: "Home Maintenance", target: 150.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Home Depot, Ace Hardware" },
-      { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX", note: "Copays, Penrad, Eye clinics" },
-      { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX", note: "Spot $138, Ting $94, HBO Max $19, Apple" },
+      { id: "health_well", name: "Health, Copays & Eye", target: 120.00, spent: 0.00, type: "Essential", source: "AMEX/Chase", note: "Copays, Jardbodin, Eye clinics" },
+      { id: "monthly_subs", name: "Monthly Subscriptions", target: 351.01, spent: 255.82, type: "Essential", source: "AMEX/Chase", note: "Spot, Ting, Apple, HBO Max, Peacock" },
       { id: "annual_subs", name: "Annual Subscriptions & Chase Fee", target: 165.00, spent: 0.00, type: "Discretionary", source: "AMEX/Chase", note: "Chase $95 Fee, Costco, Prime" },
-      { id: "ent_misc", name: "Entertainment & Travel", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Personal travel, tickets, events" },
+      { id: "ent_misc", name: "Entertainment, Mail, Auto, etc", target: 500.00, spent: 11.58, type: "Discretionary", source: "AMEX", note: "Local tickets, movies, gifts" },
 
       { id: "mortgage", name: "Freedom Mortgage", target: 2864.20, spent: 2864.20, type: "Essential", source: "USAA", note: "Posted 9/1" },
       { id: "auto_loan", name: "Auto Loan (ends Nov 2026)", target: 1581.85, spent: 0.00, type: "Essential", source: "USAA", note: "Scheduled Day 16" },
@@ -680,6 +680,7 @@
       return null;
     }
 
+    // --- ENHANCED INTELLIGENT CSV INGESTION ENGINE ---
     function startCSVIngestion() {
       const fileInput = document.getElementById('statementFileInput');
       const overwrite = document.getElementById('overwriteSpendChk').checked;
@@ -720,12 +721,14 @@
 
         stagedTravelList = [];
 
+        // Dynamic Header Token Search
         const delim = lines[0].includes('|') ? '|' : ',';
         const headerTokens = lines[0].split(delim).map(c => c.replace(/^["']|["']$/g, '').trim().toLowerCase());
 
         let dateIdx = headerTokens.findIndex(h => h.includes('date'));
         let descIdx = headerTokens.findIndex(h => h === 'description' || h.includes('payee') || h.includes('merchant'));
         let amtIdx = headerTokens.findIndex(h => h === 'amount' || h.includes('amt'));
+        let catIdx = headerTokens.findIndex(h => h === 'category');
         let memberIdx = headerTokens.findIndex(h => h.includes('card member') || h.includes('member'));
 
         if (dateIdx === -1) dateIdx = 0;
@@ -733,7 +736,7 @@
         if (amtIdx === -1) amtIdx = headerTokens.length - 1;
 
         const isChase = lines[0].toLowerCase().includes('trans date') || lines[0].toLowerCase().includes('post date');
-        const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR'];
+        const travelKeywords = ['UNITED AIRLINES', 'SOUTHWEST', 'DELTA', 'HAMPTON INN', 'HILTON', 'HOMEWOOD', 'HERTZ', 'AVIS', 'FOSSHOTEL', 'HOTEL', 'ICELANDAIR', 'PARKA', 'EASYPARK', 'LITLAHORN', 'MR. ICELAND', 'MRICELAND', 'HERJOLFUR'];
         const workIndicators = ['ROSEVILLE', 'SACRAMENTO', 'PINEHURST', 'SOUTHERN PINE', 'BEDFORD', 'HANSCOM', 'NELLIS', 'BEALE', 'BILLERICA'];
 
         let skippedDifferentMonth = 0;
@@ -747,11 +750,12 @@
           let rawDate = cols[dateIdx];
           let desc = cols[descIdx];
           let amt = parseFloat(cols[amtIdx]);
+          let bankCategory = catIdx !== -1 ? (cols[catIdx] || "").toUpperCase() : "";
           let member = memberIdx !== -1 ? (cols[memberIdx] || "") : "";
 
           if (isChase) {
             if (amt < 0) amt = Math.abs(amt);
-            else continue;
+            else continue; // ignore card payments/refunds
           } else {
             if (amt < 0) amt = Math.abs(amt);
             else if (amt <= 0) continue;
@@ -759,6 +763,7 @@
 
           if (isNaN(amt) || amt <= 0) continue;
 
+          // Filter by selected Month and Year
           const parsedD = parseTransactionDate(rawDate);
           if (parsedD) {
             if (parsedD.month !== targetMonth || parsedD.year !== targetYear) {
@@ -770,10 +775,12 @@
           processedForMonth++;
           const uDesc = desc.toUpperCase();
 
+          // Skip credit card payment transfers
           if (uDesc.includes('MOBILE PAYMENT') || uDesc.includes('PAYMENT THANK YOU') || uDesc.includes('ACH PMT') || uDesc.includes('CREDIT CRD EPAY')) {
             continue;
           }
 
+          // Check if travel charge for interactive review
           const isTravel = travelKeywords.some(k => uDesc.includes(k));
           if (isTravel) {
             const suggestsWork = workIndicators.some(w => uDesc.includes(w)) && !member.toUpperCase().includes('STEPHANIE') && !uDesc.includes('SBA') && !uDesc.includes('ICELAND');
@@ -789,32 +796,58 @@
             continue;
           }
 
-          let cat = 'ent_misc';
+          // --- ROBUST TWO-TIER CLASSIFICATION ENGINE ---
+          let cat = null;
 
+          // 1. Giving & Tithe
           if (uDesc.includes('TIMTEBOW') || uDesc.includes('SPRINGS RESCUE') || uDesc.includes('WOODMEN')) {
             cat = 'giving';
-          } 
-          else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG')) {
+          }
+          // 2. Gas & Fuel
+          else if (uDesc.includes('KING SOOPERS FUEL') || uDesc.includes('COSTCO GAS') || uDesc.includes('7-ELEVEN') || uDesc.includes('ORKAN') || uDesc.includes('EXXONMOBIL') || uDesc.includes('MAVERIK') || uDesc.includes('LOAF N JUG') || uDesc.includes('N1 BLONDUOSI') || uDesc.includes('OB ADALGOTU') || uDesc.includes('OLIS ') || uDesc.includes('SHELL') || uDesc.includes('CHEVRON') || uDesc.includes('CONOCO')) {
             cat = 'gas';
-          } 
-          else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY')) {
+          }
+          // 3. Groceries (Includes Costco Whse, Royal Crest, Specialty Grocery)
+          else if (uDesc.includes('KING SOOPERS') || uDesc.includes('TRADER JOE') || uDesc.includes('RANCH FOODS') || uDesc.includes('ROYAL CREST') || uDesc.includes('NATURAL GROCERS') || uDesc.includes('WHOLEFDS') || uDesc.includes('SAFEWAY') || uDesc.includes('COSTCO WHSE') || uDesc.includes('KJORBUDIN') || uDesc.includes('KRAMBUDIN') || uDesc.includes('KRONAN')) {
             cat = 'groceries';
-          } 
-          else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA')) {
+          }
+          // 4. Stephanie Personal (Boutiques, Erin Drew, Target, Etsy)
+          else if (uDesc.includes('ERIN DREW') || uDesc.includes('ANTHROPOLOGIE') || uDesc.includes('FREE PEOPLE') || uDesc.includes('ALO') || uDesc.includes('LULULEMON') || uDesc.includes('SEPHORA') || uDesc.includes('TARGET') || uDesc.includes('ZARA') || uDesc.includes('MADEWELL') || uDesc.includes('AERIE') || uDesc.includes('ULTA') || uDesc.includes('SOMA') || uDesc.includes('ETSY') || uDesc.includes('MODODOC') || uDesc.includes('KADLIN') || uDesc.includes('PARIS MARKET') || uDesc.includes('GARN I GANGI') || uDesc.includes('BLODBERG') || uDesc.includes('PENNINN') || uDesc.includes('PATI DE ST BARTH')) {
             cat = 'stephanie';
-          } 
-          else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE')) {
+          }
+          // 5. Brian Personal & Outdoor Gear
+          else if (uDesc.includes('REI') || uDesc.includes('DURSTON') || uDesc.includes('HYPERLITE') || uDesc.includes('ENLIGHTENED') || uDesc.includes('FLY FISH') || uDesc.includes('SCHEELS') || uDesc.includes('BASS PRO') || uDesc.includes('ANGLERS COVEY') || uDesc.includes('BENCHMADE') || uDesc.includes('SP MY MEDIC')) {
             cat = 'brian';
-          } 
-          else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD')) {
+          }
+          // 6. Grooming, Car Washes & Tolls
+          else if (uDesc.includes('CLUB CAR WASH') || uDesc.includes('SPORT CLIPS') || uDesc.includes('E 470') || uDesc.includes('E-470') || uDesc.includes('PREMIER CAR WASH') || uDesc.includes('TIRE WORLD') || uDesc.includes('PARKING') || uDesc.includes('PRKG')) {
             cat = 'grooming_auto';
-          } 
+          }
+          // 7. Pet Care & Kennel
           else if (uDesc.includes('JACKSON CREEK') || uDesc.includes('YORKSHIREVET')) {
             cat = 'pet_care';
-          } 
+          }
+          // 8. Interquest Liquors
           else if (uDesc.includes('INTERQUEST LIQUOR')) {
             cat = 'liquor';
-          } 
+          }
+          // 9. Subscriptions (Apple, Spot, Ting, etc.)
+          else if (uDesc.includes('APPLE.COM') || uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY') || uDesc.includes('MLB.TV') || uDesc.includes('MICROSOFT')) {
+            cat = 'monthly_subs';
+          }
+          // 10. Health & Wellness (Jardbodin, UCHealth, Clinics)
+          else if (uDesc.includes('JARDBODIN') || uDesc.includes('UCHEALTH') || uDesc.includes('PENRAD') || uDesc.includes('EYE CLINIC') || uDesc.includes('CLINIC') || uDesc.includes('HOSPITAL') || uDesc.includes('DENTAL')) {
+            cat = 'health_well';
+          }
+          // 11. Home Supplies
+          else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
+            cat = 'home';
+          }
+          // 12. Dining & Cafes (Broad local + international terms)
+          else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('KAFFI') || uDesc.includes('BAKARI') || uDesc.includes('BAKERY') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('SBARRO') || uDesc.includes('BREWING') || uDesc.includes('STRIKID') || uDesc.includes('KETILKAFFI') || uDesc.includes('FISH CHIPS') || uDesc.includes('VOGAR') || uDesc.includes('SYSTRAKAFFI') || uDesc.includes('ELDSTO') || uDesc.includes('LUCALI') || uDesc.includes('MY NEIGHBOR FELIX') || uDesc.includes('LANNA THAI') || uDesc.includes('COFFEE')) {
+            cat = 'food_drink';
+          }
+          // 13. Checking Debits
           else if (uDesc.includes('FREEDOM') && uDesc.includes('MTG')) {
             cat = 'mortgage';
           } else if (uDesc.includes('USAA LOAN')) {
@@ -836,15 +869,26 @@
           } else if (uDesc.includes('FLYING HORSE')) {
             cat = 'flying_horse';
           }
-          else if (uDesc.includes('SPOT PET') || uDesc.includes('TING') || uDesc.includes('SIMPLISAFE') || uDesc.includes('GARMIN') || uDesc.includes('PEACOCK') || uDesc.includes('HBO MAX') || uDesc.includes('SPOTIFY')) {
-            cat = 'monthly_subs';
-          } 
-          else if (uDesc.includes('HOME DEPOT') || uDesc.includes('ACE HARDWARE') || uDesc.includes('LOWE')) {
-            cat = 'home';
-          } 
-          else if (uDesc.includes('RESTAURANT') || uDesc.includes('CAFE') || uDesc.includes('IN-N-OUT') || uDesc.includes('JIMMY JOHN') || uDesc.includes('STARBUCKS') || uDesc.includes('CHIPOTLE') || uDesc.includes('CHICK-FIL-A') || uDesc.includes('DINER') || uDesc.includes('SUSHI') || uDesc.includes('PIZZA') || uDesc.includes('BREWING')) {
-            cat = 'food_drink';
+
+          // TIER 2: Secondary Fallback to Bank-Assigned Category Column
+          if (!cat && bankCategory) {
+            if (bankCategory.includes('FOOD') || bankCategory.includes('DINING')) {
+              cat = 'food_drink';
+            } else if (bankCategory.includes('GAS')) {
+              cat = 'gas';
+            } else if (bankCategory.includes('GROCER')) {
+              cat = 'groceries';
+            } else if (bankCategory.includes('HEALTH') || bankCategory.includes('WELLNESS')) {
+              cat = 'health_well';
+            } else if (bankCategory.includes('SHOPPING')) {
+              cat = 'stephanie'; // Default discretionary shopping to Stephanie
+            } else if (bankCategory.includes('BILLS') || bankCategory.includes('UTILITIES')) {
+              cat = 'monthly_subs';
+            }
           }
+
+          // Final fallback
+          if (!cat) cat = 'ent_misc';
 
           if (stagedSpendMap[cat] !== undefined) {
             stagedSpendMap[cat] += amt;
